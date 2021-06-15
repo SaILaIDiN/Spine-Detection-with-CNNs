@@ -1,0 +1,7 @@
+/data
+/output
+/own_models2
+/PennFudanPed
+mask_rcnn_pytorch_tut.py
+/.idea
+/__pycache__
