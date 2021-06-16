@@ -206,17 +206,18 @@ def predict_images(model, image_path, output_path, output_csv_path, threshold=0.
         model.eval()
         device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         model.to(device=device)
-        pred_dict = model(image_np)  # returns a List[Dict[Tensor]]
+        with torch.no_grad():
+            pred_dict = model(image_np)  # returns a List[Dict[Tensor]]
         pred_dict = pred_dict[0]  # removes the list as we apply inference for each img separately
 
         pred_boxes, pred_labels, pred_scores = pred_dict["boxes"], pred_dict["labels"], pred_dict["scores"]
         # boxes are already in format [xmin, ymin, xmax, ymax]
 
-        if return_csv:
-            all_boxes.append(pred_boxes)
-            all_classes.append(pred_labels)
-            all_scores.append(pred_scores)
-            # all_num_detections.append(num_detections)
+        if return_csv:  # detach them here to make it easier in the tracking parts!
+            all_boxes.append(pred_boxes.cpu().detach().numpy())
+            all_classes.append(pred_labels.cpu().detach().numpy())
+            all_scores.append(pred_scores.cpu().detach().numpy())
+            all_num_detections.append(len(pred_scores.cpu().detach().numpy()))
 
         # find out where scores are greater than at threshold and change everything according to that
         thresh_indices = np.where(pred_scores.cpu() >= threshold)[0]
