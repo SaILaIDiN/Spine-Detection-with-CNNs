@@ -52,7 +52,7 @@ parser.add_argument('-mc', '--metric', default='iom',
 
 
 def draw_boxes2(img, objects):
-    return np.zeros((1,1))
+    return np.zeros((1, 1))
 
 
 def draw_boxes(img, objects):
@@ -92,10 +92,10 @@ def csv_to_boxes(df):
             filename, w, h, class_name, score, x1, y1, x2, y2 = df.iloc[i]
         scores.append(score)
         classes.append(1) # all are spines
-        boxes.append([x1/w, y1/h, x2/w, y2/h])
+        # boxes.append([x1/w, y1/h, x2/w, y2/h])
         # boxes are in y1, x1, y2, x2 format!!!
         # boxes.append([y1/h, x1/w, y2/h, x2/w])
-        # boxes.append([x1, y1, x2, y2])
+        boxes.append([x1, y1, x2, y2])
     boxes = [boxes]
     scores = [scores]
     classes = [classes]
@@ -238,10 +238,9 @@ if __name__ == '__main__':
         else:
             print("BOXES!")
 
-        print("BOXES SHAPE: ", boxes.shape, type(boxes))
+        print("BOXES SHAPE: ", boxes, type(boxes))
         print("SCORES: ", scores, type(scores))
         print("NUM-DETECTIONS: ", num_detections, type(num_detections))
-
         image_np, orig_w, orig_h = predict.image_load_encode(img)
         h, w = image_np.shape[:2]
 
@@ -249,9 +248,16 @@ if __name__ == '__main__':
         # the if-condition with THRESH manages both origins of boxes, scores and num_detections to become equal now
         # this is because the prediction output delivers the unfiltered number of detections,
         # while the csv created in predict_images() is already filtered by the same threshold as THRESH!
-        rects = np.array([[boxes[i][0]*w, boxes[i][1]*h, boxes[i][2]*w, boxes[i][3]*h, scores[i]]
+
+        if args.csv is not None:
+            boxes = boxes[0]
+            scores = scores[0]
+            num_detections = num_detections[0]
+
+        rects = np.array([[boxes[i][0], boxes[i][1], boxes[i][2], boxes[i][3], scores[i]]
                           for i in range(num_detections) if scores[i] >= THRESH])
-            
+
+        print("RECTS: ", rects[0], rects.shape)
         objects = ct.update(rects)  # y1,x1,y2,x2
 
         # Start with non-empty lists
