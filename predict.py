@@ -109,21 +109,22 @@ def postprocess(boxes, scores, theta=0.5):
 def write_to_df(df, img_path, w, h, csv_path, class_label, boxes, scores, thresh=0.0, disable_thresh=False):
     # 'filename', 'width', 'height', 'class', 'score', 'xmin', 'ymin', 'xmax', 'ymax'
     # boxes are in format: [y1, x1, y2, x2] between 0 and 1 !!!!
-    # print("Boxes: ", boxes, "scoreS: ", scores, "len: ", len(boxes), len(scores))
+    # print("Boxes: ", boxes, "Scores: ", scores, "len: ", len(boxes), len(scores))
     dict_list = []
     for i in range(len(boxes)):
         if not disable_thresh and scores[i] < thresh:
             continue
         box = image_decode(rect=boxes[i])
-        dict_list.append({'filename': img_path, 'width': w, 'height': h, 'class': 'spine', \
+        # box = boxes[i]
+        dict_list.append({'filename': img_path, 'width': w, 'height': h, 'class': 'spine',
                           'score': scores[i], 'xmin': box[0], 'ymin': box[1], 'xmax': box[2], 'ymax': box[3]})
     if len(dict_list) != 0:
         df = df.append(dict_list)
     # be aware of windows adding \\ for folders in paths!
     csv_filepath = os.path.join(csv_path, img_path.split('/')[-1].split('\\')[-1][:-4] + '.csv')
     df.to_csv(csv_filepath, index=False)
+    print("[INFO] Detections saved in csv file "+csv_filepath+".")
     return df
-    # print("[INFO] Detections saved in csv file "+csv_filepath+".")
 
 
 def draw_boxes(orig_img, boxes, scores, thresh=0.3, disable_thresh=False):
@@ -213,18 +214,21 @@ def predict_images(model, image_path, output_path, output_csv_path, threshold=0.
         pred_boxes, pred_labels, pred_scores = pred_dict["boxes"], pred_dict["labels"], pred_dict["scores"]
         # boxes are already in format [xmin, ymin, xmax, ymax]
 
-        if return_csv:  # detach them here to make it easier in the tracking parts!
-            all_boxes.append(pred_boxes.cpu().detach().numpy())
-            all_classes.append(pred_labels.cpu().detach().numpy())
-            all_scores.append(pred_scores.cpu().detach().numpy())
-            all_num_detections.append(len(pred_scores.cpu().detach().numpy()))
+        # # # REMOVE later, after meeting
+        # if return_csv:  # detach them here to make it easier in the tracking parts!
+        #     all_boxes.append(pred_boxes.cpu().detach().numpy())
+        #     all_classes.append(pred_labels.cpu().detach().numpy())
+        #     all_scores.append(pred_scores.cpu().detach().numpy())
+        #     all_num_detections.append(len(pred_scores.cpu().detach().numpy()))
+        # # # END REMOVE
 
         # find out where scores are greater than at threshold and change everything according to that
         thresh_indices = np.where(pred_scores.cpu() >= threshold)[0]
         pred_boxes = pred_boxes[thresh_indices]
         pred_scores = pred_scores[thresh_indices]
         pred_labels = pred_labels[thresh_indices]
-
+        print("Predboxes: ", pred_boxes)
+        print("Predscores: ", pred_scores)
         # detach each image, its bounding boxes, scores and labels from torch tensors to numpy objects
         # because all following processing is done on CPU via non torch semantics
         image_np = image_np.cpu().detach().numpy()
@@ -236,6 +240,16 @@ def predict_images(model, image_path, output_path, output_csv_path, threshold=0.
         pred_labels = pred_labels.cpu().detach().numpy()
 
         pred_boxes, pred_scores = postprocess(pred_boxes, pred_scores, theta=theta)
+        print("Predboxes2: ", pred_boxes)
+        print("Predscores2: ", pred_scores)
+
+        # # # KEEP after confirmed in meeting
+        if return_csv:
+            all_boxes.append(pred_boxes)
+            all_classes.append(pred_labels)
+            all_scores.append(pred_scores)
+            all_num_detections.append(len(pred_scores))
+        # # # END KEEP
 
         # Visualization of the results of a detection, but only if output_path is provided
         if output_path is not None:
