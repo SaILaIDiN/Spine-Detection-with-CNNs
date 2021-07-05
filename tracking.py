@@ -7,48 +7,49 @@ import pandas as pd
 import time
 import scipy.io
 import predict
+from pathlib import Path
 
 from utils_FV import CentroidTracker as CT
 from collections import OrderedDict
 
 parser = argparse.ArgumentParser(description='Track spines in the whole stack',
-    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 parser.add_argument('-T', '--tif', required=False,
-    help='Path to input tif stack, if this and image-flag are set, images are priorized')
+                    help='Path to input tif stack, if this and image-flag are set, images are priorized')
 parser.add_argument('-i', '--images', required=False,
-    help='Path to input images')
+                    help='Path to input images')
 parser.add_argument('-t', '--threshold',
-    help='Threshold for detection', default=0.5, type=float)
+                    help='Threshold for detection', default=0.5, type=float)
 parser.add_argument('-a', '--appeared',
-    help='appeared counter', default=0, type=int)
+                    help='appeared counter', default=0, type=int)
 parser.add_argument('-d', '--disappeared',
-    help='disappeared counter', default=1, type=int)
+                    help='disappeared counter', default=1, type=int)
 parser.add_argument('-th', '--theta',
-    help='Threshold for theta (detection similarity threshold)', default=0.5, type=float)
+                    help='Threshold for theta (detection similarity threshold)', default=0.5, type=float)
 parser.add_argument('-ta', '--tau',
-    help='Threshold for tau (tracking threshold)', default=0.3, type=float)
+                    help='Threshold for tau (tracking threshold)', default=0.3, type=float)
 parser.add_argument('-m', '--model',
-    help='Path to model you want to analyze with')
-# parser.add_argument('-lm', '--labelmap',
-#     help='Path to labelmap', default='data/spine_label_map.pbtxt')
+                    help='Path to model you want to analyze with')
 parser.add_argument('-c', '--csv', required=False,
-    help='Single file or folder of csv files for previous prediction. '
-         'If this flag is set, no model prediction will be executed')
+                    help='Single file or folder of csv files for previous prediction. '
+                         'If this flag is set, no model prediction will be executed')
 
-parser.add_argument('-s', '--save_images', action='store_true',
-    help='Activate this flag if images should be saved')
+parser.add_argument('-s', '--save-images', action='store_true',
+                    help='Activate this flag if images should be saved')
 parser.add_argument('-o', '--output', required=False,
-    help='Path where tracking images and csv should be saved, default: output/tracking/MODEL')
-parser.add_argument('-f', '--file_save',
-    help="Name of tracked data csv file", default="data_tracking.csv")
-#parser.add_argument('-g', '--gpu',
+                    help='Path where tracking images and csv should be saved, default: output/tracking/MODEL')
+parser.add_argument('-f', '--file-save',
+                    help="Name of tracked data csv file", default="data_tracking.csv")
+# parser.add_argument('-g', '--gpu',
 #    help='GPU Number')
-#parser.add_argument('-n', '--no_prediction',
+# parser.add_argument('-n', '--no_prediction',
 #    help='NOT IMPLEMENTED Make prediction on images again/ y/n')
 parser.add_argument('-mc', '--metric', default='iom',
-    help='Metric which should be used for evaluating. Currently available: iom, iou. '
-         'Own metric can be implemented as lambda function which takes two arguments and returns one.')
+                    help='Metric which should be used for evaluating. Currently available: iom, iou. '
+                         'Own metric can be implemented as lambda function which takes two arguments and returns one.')
+parser.add_argument('-uo', '--use-offsets', action='store_true',
+                    help='whether offsets should be used or not')
 
 
 def draw_boxes2(img, objects):
@@ -57,25 +58,26 @@ def draw_boxes2(img, objects):
 
 def draw_boxes(img, objects):
     for key in objects:
-        #w, h = 512, 512
+        # w, h = 512, 512
         cX, cY, width, height, conf = objects[key]
-        x1, x2 = int(cX-width/2), int(cX+width/2)
-        y1, y2 = int(cY-height/2), int(cY+height/2)
+        x1, x2 = int(cX - width / 2), int(cX + width / 2)
+        y1, y2 = int(cY - height / 2), int(cY + height / 2)
         # correct colored rectangle
         # opencv : BGR!!!! NO RGB!!
         # linear from (0,0,255) to (255,255,0)
-        
+
         # color = (255*(1-conf), 255*conf, 255*conf)
-        color = (0,255,0)
+        color = (0, 255, 0)
         img = cv2.rectangle(img, (x1, y1), (x2, y2), color, thickness=2)
-        
+
         # green filled rectangle for text
-        color=(0, 255, 0)
+        color = (0, 255, 0)
         text_color = (0, 0, 0)
-        img = cv2.rectangle(img, (x1, y1), (x1+25, y1-12), color, thickness=-1)
-    
+        img = cv2.rectangle(img, (x1, y1), (x1 + 25, y1 - 12), color, thickness=-1)
+
         # text
-        img = cv2.putText(img, '{:02.0f}%'.format(conf*100), (x1+2, y1-3), cv2.FONT_HERSHEY_SIMPLEX, 0.3, text_color, 1)
+        img = cv2.putText(img, '{:02.0f}%'.format(conf * 100), (x1 + 2, y1 - 3), cv2.FONT_HERSHEY_SIMPLEX, 0.3,
+                          text_color, 1)
     return img
 
 
@@ -91,7 +93,7 @@ def csv_to_boxes(df):
         else:
             filename, w, h, class_name, score, x1, y1, x2, y2 = df.iloc[i]
         scores.append(score)
-        classes.append(1) # all are spines
+        classes.append(1)  # all are spines
         # boxes.append([x1/w, y1/h, x2/w, y2/h])
         # boxes are in y1, x1, y2, x2 format!!!
         # boxes.append([y1/h, x1/w, y2/h, x2/w])
@@ -119,9 +121,9 @@ if __name__ == '__main__':
     MAX_VOL = 2000
 
     # args.save, args.output
-    
+
     # df = pd.DataFrame(columns=['filename', 'width', 'height', 'class', 'xmin', 'ymin', 'xmax', 'ymax'])
-    if args.tif is None and args.images is None:
+    if args.images is None:
         raise ValueError('You need to specify input images or input tif stack!')
 
     # save_folder: folder where tracking csv file will be saved
@@ -146,20 +148,20 @@ if __name__ == '__main__':
     nr_imgs = len(list(all_imgs))
     start_imgs = time.time()
     objects = dict()
-    
+
     # set default values for current_stack and max_key
     # this should not be necessary as they are set in the first iteration, but not used there (if i != 0)
     # however, python return error
     # Problem is not in the first if-clause but after the for loop
-    
+
     # if it's just a single csv file, load all data before iterating over images
     if args.csv is not None:
         all_csv_files = glob.glob(args.csv)
         if len(all_csv_files) == 0:
             raise ValueError('No csv files with valid prediction data are available.')
-        csv_path = args.csv 
+        csv_path = args.csv
 
-    # get all boxes, scores and classes at the start if prediction is necessary:
+        # get all boxes, scores and classes at the start if prediction is necessary:
     if args.csv is None:
         model = predict.load_model(args.model)
         all_boxes, all_scores, all_classes, all_num_detections = predict.predict_images(model, args.images,
@@ -167,50 +169,62 @@ if __name__ == '__main__':
                                                                                         csv_output_path,
                                                                                         threshold=THRESH,
                                                                                         save_csv=False, return_csv=True)
+    all_csv_paths = list(Path().rglob(args.csv))
+    # print("LEN ALL CSV-PATHS: ", len(all_csv_paths))
+    # print("LEN ALL CSV-FILES: ", len(all_csv_files))
 
     ct = CT(maxDisappeared=MAX_DIS, minAppeared=MIN_APP, maxDiff=MAX_DIFF,
             iomThresh=IOM_THRESH, maxVol=MAX_VOL, metric=METRIC)
 
+    # get offsets if we want to use them
+    if args.use_offsets:
+        sr, neuron, dend, day = 52, 1, 1, 1
+        arrx = scipy.io.loadmat(f'data/offsets/SR{sr}N{neuron}D{dend}offsetX.mat')[f'SR{sr}N{neuron}D{dend}offsetX']
+        arry = scipy.io.loadmat(f'data/offsets/SR{sr}N{neuron}D{dend}offsetY.mat')[f'SR{sr}N{neuron}D{dend}offsetY']
+
+        # get offset for each stack
+        offsets = np.array(list(zip(arrx[:,day-1], arry[:,day-1]))).astype(int)
+
+        # double offsets so that it can easily be added to bounding boxes
+        offsets = np.concatenate((offsets, offsets), axis=1)  # Sized in multiples of 512 == weight == height
+
+        # make offset positive by subtracting possible negative offsets (including first offset of 0)
+        offsets = offsets - np.min(offsets, axis=0)
+
     # use given prediction for all images, if csv is available
     for i, img in enumerate(all_imgs):
-        orig_img = img.split('/')[-1]
+        orig_img = Path(img).name
         if args.csv is not None:  # PART with no new prediction, instead use csv output from previous prediction
+            # NOTE: make sure, that the used csv files are from the correct prediction model/ pth file!
             print(1)
-            if os.path.splitext(args.csv)[1] != '.csv':  # Case when args.csv is only the directory without file name
+            if len(all_csv_paths) > 1:
                 print(2)
-                csv_path = os.path.join(args.csv, os.path.splitext(orig_img)[0]+'.csv')
+                csv_path = [elem for elem in all_csv_paths if orig_img[:-4] == elem.name[:-4]]
+                if len(csv_path) == 0:
+                    # no corresponding csv file for this image
+                    continue
+                else:
+                    csv_path = csv_path[0]
                 try:
                     print(3)
                     new_df = pd.read_csv(csv_path)
                     boxes, scores, classes, num_detections = csv_to_boxes(new_df)
+                    print("3 BOXES: ", boxes, scores, num_detections)
+                    boxes = np.asarray(boxes)
+                    scores = np.asarray(scores)
+                    print("3 BOXES: ", boxes, scores, num_detections)
                 except:
                     print(4)
                     continue
-            else:  # Case when csv-file path is correct
+            else:  # Case for single csv-file, here meaning single image
                 try:
                     print(5)
-                    if len(glob.glob(args.csv)) <= 1:  # Case for single csv-file, here meaning single image
-                        print(5.001)
-                        new_df = pd.read_csv(args.csv)  # # # CODE Crashes here if args.csv contains a file name pattern
-                        # # # but works if a single correct name is given!!! -> pd.read_csv does not handle patterns
-                        # # # like glob.glob() does! -> used if condition to separate both cases
+                    new_df = pd.read_csv(args.csv)
 
-                    else:  # Case for multiple csv-files, here meaning multiple images
-                        # initialize an empty DataFrame of correct columns to allow list comprehension
-                        # of course, building the same DataFrame for every image is strongly redundant/inefficient
-                        new_df = pd.DataFrame(columns=['filename', 'width', 'height', 'class', 'score',
-                                                       'xmin', 'ymin', 'xmax', 'ymax'])
-                        print("len df: ", len(new_df))
-                        print(5.01)
-
-                        df_list = [new_df.append(pd.read_csv(path_csv)) for path_csv in sorted(glob.glob(args.csv))]
-                        print("df_list: ", len(df_list))
-                        new_df = pd.concat(df_list)  # Dataframes cannot use append() inplace -> concat the list comp.
-                        print("len df: ", len(new_df))
-                        print(5.02)
                     # load only data from interesting image
                     print(5.1)
                     new_df = new_df[new_df.apply(lambda row: os.path.splitext(orig_img)[0] in row['filename'], axis=1)]
+                    print("len df: ", len(new_df))
                     # axis=1 for looping through rows, to remove the '.png' extension in the filename
                     print(5.2)
                     # Dataframe must start with index 0 -> change row index
@@ -220,6 +234,8 @@ if __name__ == '__main__':
                     boxes, scores, classes, num_detections = csv_to_boxes(new_df)
                     print(5.3)
                     print("Values: ", len(boxes), len(scores), num_detections)
+                    boxes = np.asarray(boxes)
+                    scores = np.asarray(scores)
                 except:
                     print(6)
                     continue
@@ -241,7 +257,13 @@ if __name__ == '__main__':
         else:
             print("BOXES!")
 
-        print("BOXES SHAPE: ", boxes, type(boxes))
+        # # convert all detections from different stacks into one stack (via offset matlab files)
+        # if args.use_offsets:
+        #     # format of img name: SR52N1D1day1stack1-xx.png
+        #     stack_nr = int(orig_img[-8])
+        #     boxes += offsets[stack_nr - 1]
+
+        print("BOXES SHAPE: ", boxes, type(boxes), type(boxes[0]))
         print("SCORES: ", scores, type(scores))
         print("NUM-DETECTIONS: ", num_detections, type(num_detections))
         image_np, orig_w, orig_h = predict.image_load_encode(img)
@@ -256,10 +278,20 @@ if __name__ == '__main__':
             scores = scores[0]
             num_detections = num_detections[0]
 
+        # convert all detections from different stacks into one stack (via offset matlab files)
+        if args.use_offsets:
+            print("OIDA")
+            # format of img name: SR52N1D1day1stack1-xx.png
+            stack_nr = int(orig_img[-8])
+            print("BOXES shape: ", boxes.shape)
+            print("OFFSETS shape: ", offsets[stack_nr - 1].shape)
+            boxes += offsets[stack_nr - 1]
+            # np.add(boxes, offsets[stack_nr - 1], out=boxes, casting="unsafe")
+
         rects = np.array([[boxes[i][0], boxes[i][1], boxes[i][2], boxes[i][3], scores[i]]
                           for i in range(num_detections) if scores[i] >= THRESH])
 
-        print("RECTS: ", rects.shape, rects)
+        print("RECTS: ", rects, rects.shape)
         objects = ct.update(rects)  # y1,x1,y2,x2
 
         # Start with non-empty lists
@@ -276,14 +308,14 @@ if __name__ == '__main__':
 
             # Making boxes, classes, scores correct
             cX, cY, width, height, conf = objects[key]
-            x1, x2 = (cX-width/2)/w, (cX+width/2)/w
-            y1, y2 = (cY-height/2)/h, (cY+height/2)/h
+            x1, x2 = (cX - width / 2) / w, (cX + width / 2) / w
+            y1, y2 = (cY - height / 2) / h, (cY + height / 2) / h
             boxes.append([x1, y1, x2, y2])
             classes.append(1)
             scores.append(conf)
 
-            orig_dict.update({'id': key, 'ymin': round(y1*h, 2), 'ymax': round(y2*h, 2), 'xmin': round(x1*w, 2),
-                              'xmax': round(x2*w, 2), 'score': conf})
+            orig_dict.update({'id': key, 'ymin': round(y1 * h, 2), 'ymax': round(y2 * h, 2), 'xmin': round(x1 * w, 2),
+                              'xmax': round(x2 * w, 2), 'score': conf})
 
             all_dicts.append(orig_dict)
 
@@ -298,21 +330,22 @@ if __name__ == '__main__':
             image_np = cv2.imread(img)
             image_np = draw_boxes(image_np, objects)
     end_imgs = time.time()
-    
+
     # print('All dicts:', all_dicts)
     # delete all double elements
     all_dicts = [dict(tup) for tup in {tuple(set(elem.items())) for elem in all_dicts}]
-    df = pd.DataFrame(all_dicts, columns=['id', 'filename', 'width', 'height', 'class', 'score', 'xmin', 'ymin', 'xmax', 'ymax'])
+    df = pd.DataFrame(all_dicts,
+                      columns=['id', 'filename', 'width', 'height', 'class', 'score', 'xmin', 'ymin', 'xmax', 'ymax'])
     df.sort_values(by='filename', inplace=True)
     df.to_csv(csv_output_path, index=False)
-    
+
     # count real spines (does NOT correspond to max_key, but to number of keys!)
     nr_all_ind = len(df.groupby('id'))
     print(f"Nr of spines found: {nr_all_ind}")
-    
-    print('[INFO] Written predictions to '+csv_output_path+'.')
+
+    print('[INFO] Written predictions to ' + csv_output_path + '.')
     total_end = time.time()
-    
+
     # with open("log_tracking.txt", "w+") as f:
     #     f.write("Without writing and reading images")
     #     f.write(f"Needed {start_imgs-start}sec for starting")
