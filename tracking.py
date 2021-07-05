@@ -231,6 +231,9 @@ if __name__ == '__main__':
             # NOTE: the output values from the prediction are of type np.ndarray
             boxes, scores, classes, num_detections = all_boxes[i], all_scores[i], all_classes[i], all_num_detections[i]
 
+        if args.csv is not None:
+            boxes = boxes[0]
+
         # look if there are some boxes
         if len(boxes) == 0:
             print("NO BOXES!")
@@ -250,14 +253,13 @@ if __name__ == '__main__':
         # while the csv created in predict_images() is already filtered by the same threshold as THRESH!
 
         if args.csv is not None:
-            boxes = boxes[0]
             scores = scores[0]
             num_detections = num_detections[0]
 
         rects = np.array([[boxes[i][0], boxes[i][1], boxes[i][2], boxes[i][3], scores[i]]
                           for i in range(num_detections) if scores[i] >= THRESH])
 
-        print("RECTS: ", rects[0], rects.shape)
+        print("RECTS: ", rects.shape, rects)
         objects = ct.update(rects)  # y1,x1,y2,x2
 
         # Start with non-empty lists
