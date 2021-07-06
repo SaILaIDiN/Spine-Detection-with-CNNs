@@ -1,80 +1,26 @@
 import argparse
-import glob
 import os
-import shutil
-import sys
 import re
 import datetime
 
 from collections import OrderedDict
-from utils_FV import CentroidTracker as CT
+from utils_FV import calc_metric
 import numpy as np
 import pandas as pd
 
 
-def calc_IoM_3D(centroid1, centroid2):
-    # look how many of centroid1 and centroid2 z-axis overlap
-    # using intersection/union, not intersection/minimum
-    min_z1, max_z1 = centroid1[-2:]
-    min_z2, max_z2 = centroid2[-2:]
-    
-    if max_z1 < min_z2 or max_z2 < min_z1:
-        return 0
-        
-    # +1 has to be added because of how we count with both ends including!
-    # if GT is visible in z-layers 5 - 8 (inclusive) and detection is in layer 8 - 9
-    # they have one overlap (8), but 8 - 8 = 0 which is wrong!
-    intersection = min(max_z1, max_z2) - max(min_z1, min_z2) + 1
-    min_val = min(max_z1-min_z1, max_z2-min_z2) + 1
-
-    if min_val == 0:
-        return 0
-    
-    # gt has saved each spine with only one img -04.png
-    # should be no problem any more
-    return intersection/min_val
-
-
-def calc_metric(centroid1, centroid2, metric='own'):
-    # how to combine both metrics
-    iom = calc_IoM(centroid1, centroid2, metric=metric)
-    z_iom = calc_IoM_3D(centroid1, centroid2)
-
-    # use similar formula to fscore, but replace precision and recall with iom and z_iom
-    # beta=low because z_iom should not count that much
-    beta = 0.5
-    if iom == 0 or z_iom == 0:
-        if iom != 0 and z_iom == 0:
-            print(f"z-Problem: iom is {iom} while z_iom is {z_iom}")
-        return 0
-    final_score = (1 + beta**2) * (iom * z_iom)/(beta**2 * iom + z_iom)
-    return final_score
-
-
-def calc_IoM(centroid1, centroid2, metric='own'):
-    cX1, cY1, w1, h1 = centroid1[:4]
-    cX2, cY2, w2, h2 = centroid2[:4]
-    area1 = w1*h1; area2 = w2*h2
-
-    x11, x12, y11, y12 = cX1-w1/2, cX1+w1/2, cY1-h1/2, cY1+h1/2
-    x21, x22, y21, y22 = cX2-w2/2, cX2+w2/2, cY2-h2/2, cY2+h2/2
-
-    # directly throw out cases where both boxes do not overlap
-    x1, x2, y1, y2 = max(x11, x21), min(x12, x22), max(y11, y21), min(y12, y22)
-    if x1 >= x2 or y1 >= y2:
-        # or area1 >= 100*100 or area2 >= 100*100:
-        return 0
-
-    intersection = (x2-x1)*(y2-y1)
-    union = area1 + area2 - intersection
-
-    if metric == 'iou':
-        return intersection/union
-    elif metric == 'own':
-        return intersection/min(area1, area2)
-
 # calculates centroids from tracked csv-file by averaging spines over all there occurences
-def calc_centroids_given_tracking(tracking_filename, reg_expr_for_filename='(.*)SR052N1D1day1(.*)', det_thresh=0.5):
+def calc_centroids_given_tracking(tracking_filename: str, reg_expr_for_filename: str = '(.*)SR052N1D1day1(.*)',
+                                  det_thresh: float = 0.5) -> OrderedDict:
+    """ Calculate centroids for specific images only
+     Args:
+        tracking_filename (str): path to already tracked file
+        reg_expr_for_filename (str, optional): regular expression to get only the images you want to evaluate on.
+            Defaults to '(.*)SR052N1D1day1(.*)'.
+        det_thresh (float, optional): detection confidence threshold. Defaults to 0.5.
+    Returns:
+        OrderedDict: id, rect pairs of centroids
+    """
     df = pd.read_csv(tracking_filename)
     centroids = OrderedDict()
 
@@ -83,13 +29,12 @@ def calc_centroids_given_tracking(tracking_filename, reg_expr_for_filename='(.*)
     # loop over all given grouped spine ids and generate average centroid
     for spine_id, spine_data in df.groupby("id"):
         # get only spine ids from test dataset
-        real_data = spine_data[spine_data.apply(lambda row: re_matching.match(row['filename']) is not None, axis=1)] # "SR052N1D1day1" in row['filename']
+        real_data = spine_data[spine_data.apply(lambda row: re_matching.match(row['filename']) is not None, axis=1)]
+        # "SR052N1D1day1" in row['filename']
         if len(real_data) == 0:
             continue
         x1, y1, x2, y2, score = np.average(real_data[["xmin", "ymin", "xmax", "ymax", "score"]], axis=0)
         all_z_numbers = real_data["filename"].apply(lambda row: int(row[-6:-4]))
-        #if spine_id < 2:
-        #    print(spine_id, all_z_numbers, np.min(all_z_numbers), np.max(all_z_numbers))
         cX, cY, w, h = (x1+x2)/2, (y1+y2)/2, x2-x1, y2-y1
         
         # no img saving necessary -> all centroids from one session (including all stacks)
@@ -121,8 +66,8 @@ if __name__ == "__main__":
     # Optional
     parser.add_argument('-t', '--threshold', dest='iouThreshold', type=float, default=0.3, metavar='',
                         help='IOU threshold. Default 0.5')
-    parser.add_argument('-m', dest='metric', default='own', metavar='',
-                        help='used metric. Options are \'own\' or \'iou\'')
+    parser.add_argument('-m', dest='metric', default='iom', metavar='',
+                        help='used metric. Options are \'iom\' or \'iou\'')
     parser.add_argument('-tr', '--tracking', default='',
                         help='path of used tracking file')
     parser.add_argument('-dt', '--detection-threshold', dest='det_threshold', default=0.5, metavar='',

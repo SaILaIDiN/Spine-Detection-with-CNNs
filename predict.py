@@ -11,29 +11,25 @@ import cv2
 import argparse
 import pandas as pd
 import time
-from collections import OrderedDict
-from utils_FV import calc_IoM
-from scipy.spatial.distance import pdist
+from utils_FV import calc_metric_xy
+from typing import List, Optional, Tuple
+from pathlib import Path
 
 sys.path.append("..")
 
-# from utils import label_map_util
-
-# TODO: get image_decode into write_to_df function!
-
 parser = argparse.ArgumentParser(description='Make prediction on images')
 parser.add_argument('-m', '--model',
-                    help='Model used for prediction (without frozen_inference_graph.pb!) or folder where csv files are saved')
+                    help='Model used for prediction (without frozen_inference_graph.pb!) or folder '
+                         'where csv files are saved')
 parser.add_argument('-t', '--threshold',
                     help='Threshold for detection', default=0.5, type=float)
 parser.add_argument('-th', '--theta',
                     help='Threshold for theta (detection similarity threshold)', default=0.5, type=float)
 parser.add_argument('-C', '--use_csv', action='store_true',
                     help='activate this flag if you want to use the given csv files')
-# parser.add_argument('-l', '--labelmap', \
-#     help='Path to labelmap file ending with .pbtxt', default='data/spine_label_map.pbtxt')
 parser.add_argument('-i ', '--input',
-                    help='Path to input image(s), ready for prediction. Path can contain wildcards but must start and end with "')
+                    help='Path to input image(s), ready for prediction. '
+                         'Path can contain wildcards but must start and end with "')
 parser.add_argument('-s', '--save_images', action='store_true',
                     help='Activate this flag if images should be saved')
 parser.add_argument('-o', '--output', required=False,
@@ -41,6 +37,12 @@ parser.add_argument('-o', '--output', required=False,
 
 
 def image_load_encode(img_path):
+    """ Load image from path to 512x512 format
+    Args:
+        img_path (str): path to image file
+    Returns:
+        Tuple[np.ndarray, int, int]: image as np-array, its width and height
+    """
     # function to read img from given path and convert to get correct 512x512 format
     # new_img = np.zeros((512, 512, 3))
     # new_img[:256, :] = image[:, :512]
@@ -51,13 +53,24 @@ def image_load_encode(img_path):
 
 
 def image_decode(img=None, rect=None):
+    """ Reverse image encoding potentially applied to rects as well
+    Args:
+        img (Optional[np.ndarray]): input (512x512) image to decode
+        rect (Optional[List]): rect in (x1, y1, x2, y2) format to decode
+    Raises:
+        AttributeError: At least img or rect must be not None to get a result
+    Returns:
+        np.ndarray: Depending on the non-None inputs decoded output of either img, rect or (img, rect)
+    """
     # function to decode img or detection, depending which type is provided to get original img/detection back
     # rects have x/y values between 0 and 512 and are of type xmin, ymin, xmax, ymax
     # convert img back to 1024/256
     # img = np.zeros((256, 1024, 3))
     # img[:, :512] = orig_img[:256, :]
     # img[:, 512:] = orig_img[256:, :]
-
+    if img is None and rect is None:
+        raise AttributeError(
+            "At least one of img or rect need to have not None values.")
     if img is None:
         return np.array(rect).astype(int)
     if rect is None:
@@ -67,6 +80,14 @@ def image_decode(img=None, rect=None):
 
 
 def postprocess(boxes, scores, theta=0.5):
+    """ Postprocess boxes and scores and average boxes if necessary
+    Args:
+        boxes (np.ndarray): input boxes in (x1, y1, x2, y2) format
+        scores (np.ndarray): confidence scores
+        theta (float, optional): minimum IoM thresh to count as same object. Defaults to 0.5.
+    Returns:
+        Tuple[np.ndarray]: tuple of correct np arrays (boxes, scores)
+    """
     # postprocess boxes and scores:
     # if multiple boxes have an iom >= theta -> consider as the same box and get
     # expected averaged box out of it
@@ -75,7 +96,7 @@ def postprocess(boxes, scores, theta=0.5):
     cluster_ids = list(range(len(boxes)))
     for i in range(len(boxes)):
         for j in range(i + 1, len(boxes)):
-            iom = calc_IoM(rect1=boxes[i], rect2=boxes[j])
+            iom = calc_metric_xy(rect1=boxes[i], rect2=boxes[j])
             if iom >= theta:
                 # set cluster id of following point to that of the current pnt
                 # this order is correct, as that is already fixed from previous rounds
@@ -90,7 +111,7 @@ def postprocess(boxes, scores, theta=0.5):
         # only average if there are more than one box in that cluster
         if len(indices) > 1:
             new_box = np.sum(boxes[indices] * scores[indices].reshape(len(indices), 1), axis=0) / np.sum(
-                scores[indices])
+                      scores[indices])
             max_score = np.max(scores[indices])
 
             # score calculates as follows: max_score + weight*extra, weight = 1-max_score (to stay <= 1)
@@ -107,27 +128,51 @@ def postprocess(boxes, scores, theta=0.5):
 
 
 def write_to_df(df, img_path, w, h, csv_path, class_label, boxes, scores, thresh=0.0, disable_thresh=False):
+    """ Write detection to dataframe
+    Args:
+        df (pd.DataFrame): dataframe which should be appended
+        img_path (str): image path of image corresponding to detections
+        w (int): width of image
+        h (int): height of image
+        csv_path (str): path to folder where all csv files should be saved
+        class_label (str): name of class
+        boxes (np.ndarray): all detection boxes
+        scores (np.ndarray): all detection scores
+        thresh (float, optional): min confidence necessary to count as spine. Defaults to 0.0.
+        disable_thresh (bool, optional): Flag whether to use differentiation by confidence score. Defaults to False.
+    Returns:
+        pd.DataFrame: appended dataframe
+    """
     # 'filename', 'width', 'height', 'class', 'score', 'xmin', 'ymin', 'xmax', 'ymax'
     # boxes are in format: [y1, x1, y2, x2] between 0 and 1 !!!!
-    # print("Boxes: ", boxes, "Scores: ", scores, "len: ", len(boxes), len(scores))
     dict_list = []
     for i in range(len(boxes)):
         if not disable_thresh and scores[i] < thresh:
             continue
         box = image_decode(rect=boxes[i])
         # box = boxes[i]
-        dict_list.append({'filename': img_path, 'width': w, 'height': h, 'class': 'spine',
+        dict_list.append({'filename': img_path, 'width': w, 'height': h, 'class': class_label,
                           'score': scores[i], 'xmin': box[0], 'ymin': box[1], 'xmax': box[2], 'ymax': box[3]})
     if len(dict_list) != 0:
         df = df.append(dict_list)
     # be aware of windows adding \\ for folders in paths!
-    csv_filepath = os.path.join(csv_path, img_path.split('/')[-1].split('\\')[-1][:-4] + '.csv')
+    csv_filepath = os.path.join(csv_path, Path(img_path).name[:-4] + '.csv')
     df.to_csv(csv_filepath, index=False)
     print("[INFO] Detections saved in csv file "+csv_filepath+".")
     return df
 
 
 def draw_boxes(orig_img, boxes, scores, thresh=0.3, disable_thresh=False):
+    """ Draw detection boxes onto image
+    Args:
+        orig_img (np.ndarray): original image to draw on
+        boxes (np.ndarray): detection boxes
+        scores (np.ndarray): detection confidence scores
+        thresh (float, optional): min confidence necessary to count as spine. Defaults to 0.3.
+        disable_thresh (bool, optional): Flag whether to use differentiation by confidence score. Defaults to False.
+    Returns:
+        np.ndarray:
+    """
     img = image_decode(img=orig_img)
 
     for i in range(len(boxes)):
@@ -158,13 +203,18 @@ def draw_boxes(orig_img, boxes, scores, thresh=0.3, disable_thresh=False):
 
 
 def df_to_data(df):
+    """ Converts GT dataframe to detections and their classes with confidences 1.0
+    Args:
+        df (pd.DataFrame): input dataframe for GT
+    Returns:
+        Tuple[List]: tuple of detection rects, detection classes
+    """
     # get rects (boxes+scores) and classes for this specific dataframe
     rects = np.zeros((len(df), 5))
     scores = np.zeros(len(df))
 
     if len(df) == 0:
         return rects, scores
-    # print('df: ', len(df))
     fi = df.first_valid_index()
     w, h = df['width'][fi], df['height'][fi]
     for i in range(len(df)):
@@ -175,7 +225,8 @@ def df_to_data(df):
 
 
 def load_model(path):
-    # Load frozen model
+    """ Load frozen model """
+
     print("[INFO] Loading model ...")
     model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
     # replace the classifier with a new one, that has
@@ -192,6 +243,18 @@ def load_model(path):
 # save_csv flag only False if used in tracking.py!
 def predict_images(model, image_path, output_path, output_csv_path, threshold=0.3, theta=0.5, save_csv=True,
                    return_csv=False):
+    """ Predict detection on image
+    Args:
+        model: detecting model object
+        image_path (str): path to image
+        output_path (str): output folder to write detected images to
+        output_csv_path (str): output folder to write csv of detections to
+        threshold (float, optional): detection threshold. Defaults to 0.3.
+        save_csv (bool, optional): whether csv files of detection should be saved. Defaults to True.
+        return_csv (bool, optional): whether tuple of all results should be returned at the end.
+    Returns:
+        Tuple[np.ndarray]: tuple of np arrays (all_boxes, all_scores, all_classes, all_num_detections)
+    """
     data = pd.DataFrame(columns=['filename', 'width', 'height', 'class', 'score', 'xmin', 'ymin', 'xmax', 'ymax'])
     all_boxes, all_scores, all_classes, all_num_detections = [], [], [], []
     for img in sorted(glob.glob(image_path)):
@@ -214,14 +277,6 @@ def predict_images(model, image_path, output_path, output_csv_path, threshold=0.
         pred_boxes, pred_labels, pred_scores = pred_dict["boxes"], pred_dict["labels"], pred_dict["scores"]
         # boxes are already in format [xmin, ymin, xmax, ymax]
 
-        # # # REMOVE later, after meeting
-        # if return_csv:  # detach them here to make it easier in the tracking parts!
-        #     all_boxes.append(pred_boxes.cpu().detach().numpy())
-        #     all_classes.append(pred_labels.cpu().detach().numpy())
-        #     all_scores.append(pred_scores.cpu().detach().numpy())
-        #     all_num_detections.append(len(pred_scores.cpu().detach().numpy()))
-        # # # END REMOVE
-
         # find out where scores are greater than at threshold and change everything according to that
         thresh_indices = np.where(pred_scores.cpu() >= threshold)[0]
         pred_boxes = pred_boxes[thresh_indices]
@@ -240,16 +295,14 @@ def predict_images(model, image_path, output_path, output_csv_path, threshold=0.
         pred_labels = pred_labels.cpu().detach().numpy()
 
         pred_boxes, pred_scores = postprocess(pred_boxes, pred_scores, theta=theta)
-        print("Predboxes2: ", pred_boxes)
-        print("Predscores2: ", pred_scores)
+        print("Predboxes (detached): ", pred_boxes)
+        print("Predscores (detached): ", pred_scores)
 
-        # # # KEEP after confirmed in meeting
         if return_csv:
             all_boxes.append(pred_boxes)
             all_classes.append(pred_labels)
             all_scores.append(pred_scores)
             all_num_detections.append(len(pred_scores))
-        # # # END KEEP
 
         # Visualization of the results of a detection, but only if output_path is provided
         if output_path is not None:
@@ -304,11 +357,6 @@ if __name__ == '__main__':
     # Path to the actual model that is used for the object detection.
     PATH_TO_CKPT = os.path.join('own_models2', args.model, 'faster_rcnn_model.pth')
 
-    # List of the strings that is used to add correct label for each box.
-    # PATH_TO_LABELS = args.labelmap
-
-    NUM_CLASSES = 1
-
     # Decide whether to predict the bboxes or to load from csv
     if not args.use_csv:
         model = load_model(PATH_TO_CKPT)
@@ -316,11 +364,6 @@ if __name__ == '__main__':
         print("[INFO] Loading detections from csv file ...")
         df = pd.read_csv(args.model)
     after_loading_model = time.time()
-
-    # Load categories
-    # label_map = label_map_util.load_labelmap(PATH_TO_LABELS)
-    # categories = label_map_util.convert_label_map_to_categories(label_map, max_num_classes=NUM_CLASSES, use_display_name=True)
-    # category_index = label_map_util.create_category_index(categories)
 
     # Make prediction
     nr_imgs = len(list(glob.glob(args.input)))
@@ -351,11 +394,6 @@ if __name__ == '__main__':
             img_output_path = os.path.join(output_path, orig_name)
             cv2.imwrite(img_output_path, image_np)
 
-            # no writing to csv-file necessary as a csv file was already provided
-
     finished = time.time()
     print(f"Model read in {after_loading_model - start}sec")
     print(f"Predicted {nr_imgs} images in {finished - after_loading_model}sec")
-    # with open("log_predict.txt", "w+") as f:
-    #     f.write(f"Model read in {after_loading_model-start}sec")
-    #     f.write(f"Predicted {nr_imgs} in {finished-after_loading_model}sec -> {(finished-after_loading_model)/nr_imgs}sec per img")

@@ -4,7 +4,6 @@ import glob
 import cv2
 import numpy as np
 import pandas as pd
-import time
 import scipy.io
 import predict
 from pathlib import Path
@@ -109,7 +108,6 @@ def csv_to_boxes(df):
 
 
 if __name__ == '__main__':
-    start = time.time()
     args = parser.parse_args()
     # Max diff -> (minimum) diff so that two following bboxes are connected with each other
     # iom thresh -> min iom that two boxes are considered the same in the same frame!
@@ -145,7 +143,6 @@ if __name__ == '__main__':
     total_classes = []
     total_scores = []
     nr_imgs = len(list(all_imgs))
-    start_imgs = time.time()
     objects = dict()
 
     # if it's just a single csv file, load all data before iterating over images
@@ -302,7 +299,6 @@ if __name__ == '__main__':
         if args.save_images:
             image_np = cv2.imread(img)
             image_np = draw_boxes(image_np, objects)
-    end_imgs = time.time()
 
     # delete all double elements
     all_dicts = [dict(tup) for tup in {tuple(set(elem.items())) for elem in all_dicts}]
@@ -316,4 +312,3 @@ if __name__ == '__main__':
     print(f"Nr of spines found: {nr_all_ind}")
 
     print('[INFO] Written predictions to ' + csv_output_path + '.')
-    total_end = time.time()
