@@ -183,9 +183,7 @@ if __name__ == '__main__':
         orig_img = Path(img).name
         if args.csv is not None:  # PART with no new prediction, instead use csv output from previous prediction
             # NOTE: make sure, that the used csv files are from the correct prediction model/ pth file!
-            print(1)
             if len(all_csv_paths) > 1:
-                print(2)
                 csv_path = [elem for elem in all_csv_paths if orig_img[:-4] == elem.name[:-4]]
                 if len(csv_path) == 0:
                     # no corresponding csv file for this image
@@ -193,34 +191,25 @@ if __name__ == '__main__':
                 else:
                     csv_path = csv_path[0]
                 try:
-                    print(3)
                     new_df = pd.read_csv(csv_path)
                     boxes, scores, classes, num_detections = csv_to_boxes(new_df)
                     boxes = np.asarray(boxes)
                     scores = np.asarray(scores)
                 except:
-                    print(4)
                     continue
             else:  # Case for single csv-file, here meaning single image
                 try:
-                    print(5)
                     new_df = pd.read_csv(args.csv)
 
                     # load only data from interesting image
-                    print(5.1)
                     new_df = new_df[new_df.apply(lambda row: os.path.splitext(orig_img)[0] in row['filename'], axis=1)]
                     # axis=1 for looping through rows, to remove the '.png' extension in the filename
-                    print(5.2)
                     boxes, scores, classes, num_detections = csv_to_boxes(new_df)
-                    print(5.3)
-                    print("Values: ", len(boxes), len(scores), num_detections)
                     boxes = np.asarray(boxes)
                     scores = np.asarray(scores)
                 except:
-                    print(6)
                     continue
         else:
-            print(7)
             # just load data from saved list
             # this works as all_imgs from this file and sorted(glob.glob(args.images)) from predict sort all
             # image paths so they are perfectly aligned
@@ -237,9 +226,9 @@ if __name__ == '__main__':
         else:
             print("BOXES!")
 
-        print("BOXES: ", boxes, type(boxes), type(boxes[0]))
-        print("SCORES: ", scores, type(scores))
-        print("NUM-DETECTIONS: ", num_detections, type(num_detections))
+        # print("BOXES: ", boxes, type(boxes), type(boxes[0]))
+        # print("SCORES: ", scores, type(scores))
+        # print("NUM-DETECTIONS: ", num_detections, type(num_detections))
         image_np, orig_w, orig_h = predict.image_load_encode(img)
         h, w = image_np.shape[:2]
 
@@ -256,14 +245,14 @@ if __name__ == '__main__':
         if args.use_offsets:
             # format of img name: SR52N1D1day1stack1-xx.png
             stack_nr = int(orig_img[-8])
-            print("BOXES shape: ", boxes.shape)
-            print("OFFSETS shape: ", offsets[stack_nr - 1].shape)
+            # print("BOXES shape: ", boxes.shape)
+            # print("OFFSETS shape: ", offsets[stack_nr - 1].shape)
             boxes += offsets[stack_nr - 1]
 
         rects = np.array([[boxes[i][0], boxes[i][1], boxes[i][2], boxes[i][3], scores[i]]
                           for i in range(num_detections) if scores[i] >= THRESH])
 
-        print("RECTS: ", rects, rects.shape)
+        # print("RECTS: ", rects, rects.shape)
         objects = ct.update(rects)  # y1,x1,y2,x2
 
         # Start with non-empty lists
