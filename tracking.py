@@ -11,6 +11,7 @@ from pathlib import Path
 
 from utils_FV import CentroidTracker as CT
 from collections import OrderedDict
+from typing import Tuple, List
 
 parser = argparse.ArgumentParser(description='Track spines in the whole stack',
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -41,10 +42,6 @@ parser.add_argument('-o', '--output', required=False,
                     help='Path where tracking images and csv should be saved, default: output/tracking/MODEL')
 parser.add_argument('-f', '--file-save',
                     help="Name of tracked data csv file", default="data_tracking.csv")
-# parser.add_argument('-g', '--gpu',
-#    help='GPU Number')
-# parser.add_argument('-n', '--no_prediction',
-#    help='NOT IMPLEMENTED Make prediction on images again/ y/n')
 parser.add_argument('-mc', '--metric', default='iom',
                     help='Metric which should be used for evaluating. Currently available: iom, iou. '
                          'Own metric can be implemented as lambda function which takes two arguments and returns one.')
@@ -52,11 +49,15 @@ parser.add_argument('-uo', '--use-offsets', action='store_true',
                     help='whether offsets should be used or not')
 
 
-def draw_boxes2(img, objects):
-    return np.zeros((1, 1))
+def draw_boxes(img: np.ndarray, objects: OrderedDict) -> np.ndarray:
+    """ Draw boxes onto image
+    Args:
+        img (np.ndarray): image input to draw on
+        objects (OrderedDict): Dictionary of objects of format (cX, cY, w, h, conf)
+    Returns:
+        np.ndarray: output image with drawn boxes
+    """
 
-
-def draw_boxes(img, objects):
     for key in objects:
         # w, h = 512, 512
         cX, cY, width, height, conf = objects[key]
@@ -84,7 +85,12 @@ def draw_boxes(img, objects):
 def csv_to_boxes(df):
     """ This function collects and prepares the required data for tracking, by extracting from csv-files.
         These files are from previous predictions. This way, one can review older predictions multiple times.
+    Args:
+        df (pd.DataFrame): Dataframe of interest
+    Returns:
+        Tuple[List]: Tuple containing boxes, scores, classes, num detections
     """
+
     boxes, scores, classes = [], [], []
     for i in range(len(df)):
         if len(df.iloc[i]) == 8:
@@ -94,9 +100,6 @@ def csv_to_boxes(df):
             filename, w, h, class_name, score, x1, y1, x2, y2 = df.iloc[i]
         scores.append(score)
         classes.append(1)  # all are spines
-        # boxes.append([x1/w, y1/h, x2/w, y2/h])
-        # boxes are in y1, x1, y2, x2 format!!!
-        # boxes.append([y1/h, x1/w, y2/h, x2/w])
         boxes.append([x1, y1, x2, y2])
     boxes = [boxes]
     scores = [scores]
@@ -116,13 +119,9 @@ if __name__ == '__main__':
     MIN_APP = args.appeared
     MAX_DIS = args.disappeared
     METRIC = args.metric
-    # PATH_TO_LABELS = args.labelmap
     NUM_CLASSES = 1
     MAX_VOL = 2000
 
-    # args.save, args.output
-
-    # df = pd.DataFrame(columns=['filename', 'width', 'height', 'class', 'xmin', 'ymin', 'xmax', 'ymax'])
     if args.images is None:
         raise ValueError('You need to specify input images or input tif stack!')
 
@@ -130,7 +129,7 @@ if __name__ == '__main__':
     # folder: name of folder which is used in csv file for generating filename-column
     model_name = args.model.split("/")[-1] if args.model.split("/")[-1] != "" else args.model.split("/")[-2]
     if args.output is None:
-        args.output = os.path.join('output/tracking', model_name)  # os.path.join(args.save, args.model.split('/')[-1]
+        args.output = os.path.join('output/tracking', model_name)
     if not os.path.exists(args.output):
         os.makedirs(args.output)
     img_output_path = os.path.join(args.output, 'images')
@@ -149,11 +148,6 @@ if __name__ == '__main__':
     start_imgs = time.time()
     objects = dict()
 
-    # set default values for current_stack and max_key
-    # this should not be necessary as they are set in the first iteration, but not used there (if i != 0)
-    # however, python return error
-    # Problem is not in the first if-clause but after the for loop
-
     # if it's just a single csv file, load all data before iterating over images
     if args.csv is not None:
         all_csv_files = glob.glob(args.csv)
@@ -161,17 +155,13 @@ if __name__ == '__main__':
             raise ValueError('No csv files with valid prediction data are available.')
         csv_path = args.csv
 
-        # get all boxes, scores and classes at the start if prediction is necessary:
+    # get all boxes, scores and classes at the start if prediction is necessary:
     if args.csv is None:
         model = predict.load_model(args.model)
-        all_boxes, all_scores, all_classes, all_num_detections = predict.predict_images(model, args.images,
-                                                                                        img_output_path,
-                                                                                        csv_output_path,
-                                                                                        threshold=THRESH,
-                                                                                        save_csv=False, return_csv=True)
+        all_boxes, all_scores, all_classes, all_num_detections = predict.predict_images(
+            model, args.images, img_output_path, csv_output_path, threshold=THRESH, save_csv=False, return_csv=True)
+
     all_csv_paths = list(Path().rglob(args.csv))
-    # print("LEN ALL CSV-PATHS: ", len(all_csv_paths))
-    # print("LEN ALL CSV-FILES: ", len(all_csv_files))
 
     ct = CT(maxDisappeared=MAX_DIS, minAppeared=MIN_APP, maxDiff=MAX_DIFF,
             iomThresh=IOM_THRESH, maxVol=MAX_VOL, metric=METRIC)
@@ -183,7 +173,7 @@ if __name__ == '__main__':
         arry = scipy.io.loadmat(f'data/offsets/SR{sr}N{neuron}D{dend}offsetY.mat')[f'SR{sr}N{neuron}D{dend}offsetY']
 
         # get offset for each stack
-        offsets = np.array(list(zip(arrx[:,day-1], arry[:,day-1]))).astype(int)
+        offsets = np.array(list(zip(arrx[:, day-1], arry[:, day-1]))).astype(int)
 
         # double offsets so that it can easily be added to bounding boxes
         offsets = np.concatenate((offsets, offsets), axis=1)  # Sized in multiples of 512 == weight == height
@@ -209,10 +199,8 @@ if __name__ == '__main__':
                     print(3)
                     new_df = pd.read_csv(csv_path)
                     boxes, scores, classes, num_detections = csv_to_boxes(new_df)
-                    print("3 BOXES: ", boxes, scores, num_detections)
                     boxes = np.asarray(boxes)
                     scores = np.asarray(scores)
-                    print("3 BOXES: ", boxes, scores, num_detections)
                 except:
                     print(4)
                     continue
@@ -224,13 +212,8 @@ if __name__ == '__main__':
                     # load only data from interesting image
                     print(5.1)
                     new_df = new_df[new_df.apply(lambda row: os.path.splitext(orig_img)[0] in row['filename'], axis=1)]
-                    print("len df: ", len(new_df))
                     # axis=1 for looping through rows, to remove the '.png' extension in the filename
                     print(5.2)
-                    # Dataframe must start with index 0 -> change row index
-                    # new_df.index = range(len(new_df))
-                    # not necessary if using iloc instead of loc!
-
                     boxes, scores, classes, num_detections = csv_to_boxes(new_df)
                     print(5.3)
                     print("Values: ", len(boxes), len(scores), num_detections)
@@ -257,13 +240,7 @@ if __name__ == '__main__':
         else:
             print("BOXES!")
 
-        # # convert all detections from different stacks into one stack (via offset matlab files)
-        # if args.use_offsets:
-        #     # format of img name: SR52N1D1day1stack1-xx.png
-        #     stack_nr = int(orig_img[-8])
-        #     boxes += offsets[stack_nr - 1]
-
-        print("BOXES SHAPE: ", boxes, type(boxes), type(boxes[0]))
+        print("BOXES: ", boxes, type(boxes), type(boxes[0]))
         print("SCORES: ", scores, type(scores))
         print("NUM-DETECTIONS: ", num_detections, type(num_detections))
         image_np, orig_w, orig_h = predict.image_load_encode(img)
@@ -280,13 +257,11 @@ if __name__ == '__main__':
 
         # convert all detections from different stacks into one stack (via offset matlab files)
         if args.use_offsets:
-            print("OIDA")
             # format of img name: SR52N1D1day1stack1-xx.png
             stack_nr = int(orig_img[-8])
             print("BOXES shape: ", boxes.shape)
             print("OFFSETS shape: ", offsets[stack_nr - 1].shape)
             boxes += offsets[stack_nr - 1]
-            # np.add(boxes, offsets[stack_nr - 1], out=boxes, casting="unsafe")
 
         rects = np.array([[boxes[i][0], boxes[i][1], boxes[i][2], boxes[i][3], scores[i]]
                           for i in range(num_detections) if scores[i] >= THRESH])
@@ -301,8 +276,6 @@ if __name__ == '__main__':
 
         # DO NOT USE absolute path for images!
         total_path = os.path.join(img_output_path, img.split('/')[-1])
-        # real_output_path = os.path.join(save_folder, img.split('/')[-1])
-        # print('keys:', objects.keys())
         for key in objects:
             orig_dict = {'filename': total_path, 'width': w, 'height': h, 'class': 'spine'}
 
@@ -331,7 +304,6 @@ if __name__ == '__main__':
             image_np = draw_boxes(image_np, objects)
     end_imgs = time.time()
 
-    # print('All dicts:', all_dicts)
     # delete all double elements
     all_dicts = [dict(tup) for tup in {tuple(set(elem.items())) for elem in all_dicts}]
     df = pd.DataFrame(all_dicts,
@@ -345,9 +317,3 @@ if __name__ == '__main__':
 
     print('[INFO] Written predictions to ' + csv_output_path + '.')
     total_end = time.time()
-
-    # with open("log_tracking.txt", "w+") as f:
-    #     f.write("Without writing and reading images")
-    #     f.write(f"Needed {start_imgs-start}sec for starting")
-    #     f.write(f"Tracking {nr_imgs} imgs in one direction in {end_imgs-start_imgs}sec -> {(end_imgs-start_imgs)/nr_imgs}sec per image")
-    #     f.write(f"Tracking {nr_imgs} imgs backwards in {total_end-end_imgs}sec -> {(total_end-end_imgs)/nr_imgs}sec per image")
