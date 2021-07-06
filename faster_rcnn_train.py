@@ -35,13 +35,13 @@ def main():
 
     # construct an optimizer
     params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = torch.optim.SGD(params, lr=0.0001, momentum=0.9, weight_decay=0.0005)
+    optimizer = torch.optim.SGD(params, lr=0.0003, momentum=0.9, weight_decay=0.0003)
 
     # and a learning rate scheduler
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
 
     # let's train it for 10 epochs
-    num_epochs = 1
+    num_epochs = 80
 
     for epoch in range(num_epochs):
         # train for one epoch, printing every 10 iterations
@@ -50,10 +50,11 @@ def main():
         lr_scheduler.step()
         # evaluate on the test dataset
         evaluate(model, test_loader, device=device)
+        torch.save(model.state_dict(), "own_models2/default_model/faster_rcnn_model_CHECKPOINT.pth")
 
     print("Training and validation complete!")
 
-    torch.save(model.state_dict(), "own_models2/default_model/faster_rcnn_model.pth")
+    torch.save(model.state_dict(), "own_models2/default_model/faster_rcnn_model_lr_3e-4_lr_schedule_on80.pth")
     print("Training model stored!")
 
 
