@@ -7,3 +7,4 @@ mask_rcnn_pytorch_tut.py
 /__pycache__
 /results
 tracking_offset.py
+/references/mmdetection/checkpoints/*.pth
