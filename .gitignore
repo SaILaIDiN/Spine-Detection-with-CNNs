@@ -8,3 +8,6 @@ mask_rcnn_pytorch_tut.py
 /results
 tracking_offset.py
 /references/mmdetection/checkpoints/*.pth
+INFO
+result*.png
+/tutorial_exps
