@@ -111,7 +111,7 @@ def get_loading_pipeline(pipeline):
     return loading_pipeline_cfg
 
 
-@HOOKS.register_module()
+@HOOKS.register_module(name='NumClassCheckHook', force=True)
 class NumClassCheckHook(Hook):
 
     def _check_head(self, runner):
