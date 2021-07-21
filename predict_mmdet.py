@@ -270,21 +270,22 @@ def predict_images(model, image_path, output_path, output_csv_path, threshold=0.
         # pred_array now contains all bboxes of class spine with each box of shape (0, 5)
         # len(pred_array) = 80 means 80 bboxes provided
         # pred_array[i] = [x_min, y_min, x_max, y_max, score]
-        pred_boxes = torch.from_numpy(np.asarray([[p[0], p[1], p[2], p[3]] for p in pred_array]))
-        pred_labels = torch.from_numpy(np.zeros(len(pred_array)))
-        pred_scores = torch.from_numpy(np.asarray([p[4] for p in pred_array]))
+        pred_boxes = np.asarray([[p[0], p[1], p[2], p[3]] for p in pred_array])
+        pred_labels = np.zeros(len(pred_array))
+        pred_scores = np.asarray([p[4] for p in pred_array])
 
         # find out where scores are greater than at threshold and change everything according to that
-        thresh_indices = np.where(pred_scores.cpu() >= threshold)[0]
+        thresh_indices = np.where(pred_scores >= threshold)[0]
         pred_boxes = pred_boxes[thresh_indices]
         pred_scores = pred_scores[thresh_indices]
         pred_labels = pred_labels[thresh_indices]
 
-        pred_boxes = pred_boxes.cpu().detach().numpy()
-        pred_scores = pred_scores.cpu().detach().numpy()
-        pred_labels = pred_labels.cpu().detach().numpy()
-
         pred_boxes, pred_scores = postprocess(pred_boxes, pred_scores, theta=theta)
+
+        if len(pred_scores) > 0:  # if img has any detections, recreate pred_output from postprocessed results for vis.
+            pred_output = np.concatenate((pred_boxes, np.array([pred_scores]).T), axis=1)
+            pred_output = [pred_output]  # turn np.array to list[np.array]
+
         print("Predboxes (detached): ", pred_boxes)
         print("Predscores (detached): ", pred_scores)
 
@@ -299,7 +300,7 @@ def predict_images(model, image_path, output_path, output_csv_path, threshold=0.
             output_path = "output/prediction/MODEL/images_mmdet"
             orig_name = img.split('/')[-1].split('\\')[-1]
             img_output_path = os.path.join(output_path, orig_name)
-            model.show_result(img, pred_output, score_thr=0.3, font_size=4, out_file=img_output_path)
+            model.show_result(img, pred_output, score_thr=0.5, font_size=4, out_file=img_output_path)
 
         # always saving data to dataframe
         if save_csv:
