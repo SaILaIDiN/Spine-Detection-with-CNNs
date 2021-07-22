@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import random
 from mmdet.datasets.builder import DATASETS
 from mmdet.datasets.custom import CustomDataset
 
@@ -60,17 +61,24 @@ if __name__ == "__main__":
     # ann_csv_into_txt("data/default_annotations/data.csv")
 
 
-    def split_csv(ann_csv, shuffle=False):
+    def split_csv(ann_csv, shuffle_by_single=False, shuffle_by_group=False):
         """ Split given csv with annotations into two csv files for either train or val. """
 
         data_df = pd.read_csv(ann_csv, encoding="utf-8")
-        # data_df = data_df.sample(frac=1)  # for random shuffle, or just use shuffle parameter below
-        train, val = train_test_split(data_df, shuffle=shuffle, test_size=0.2)
+        if shuffle_by_group:
+            groups = [df for _, df in data_df.groupby("filename")]
+            random.shuffle(groups)
+            data_df = pd.concat(groups).reset_index(drop=True)
+        if shuffle_by_single:
+            data_df = data_df.sample(frac=1)  # for random shuffle, or just use shuffle parameter below
+            # in this case some images may appear in train and val where the set of bboxes is split
+            # so that some images are incompletely learned -> keep val mAP very low!
+        train, val = train_test_split(data_df, shuffle=False, test_size=0.25)
         train.to_csv("data/default_annotations/data_train.csv", encoding="utf-8", index=False)
         val.to_csv("data/default_annotations/data_val.csv", encoding="utf-8", index=False)
 
 
-    split_csv("data/default_annotations/data.csv")
+    split_csv("data/default_annotations/data.csv", shuffle_by_group=True)
 
 
     def load_annotations(ann_csv_file):
