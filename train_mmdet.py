@@ -1,7 +1,7 @@
 import mmcv
 from mmcv import Config
 from mmdet.apis.train import set_random_seed
-# from dataset_mmdet import SpineDataset, DATASETS
+from dataset_mmdet import SpineDataset, DATASETS
 
 cfg = Config.fromfile("references/mmdetection/configs/cascade_rcnn/cascade_rcnn_r50_fpn_1x_coco_SPINE.py")
 
@@ -50,7 +50,7 @@ cfg.work_dir = 'tutorial_exps'
 
 # cfg.optimizer.lr = 0.00002
 cfg.lr_config.warmup = None
-cfg.runner.max_epochs = 4
+cfg.runner.max_epochs = 10
 
 # We can initialize the logger for training and have a look
 # at the final config used for training
