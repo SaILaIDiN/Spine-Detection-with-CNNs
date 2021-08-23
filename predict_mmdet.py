@@ -231,8 +231,20 @@ def load_model():
     """ Load frozen model """
 
     print("[INFO] Loading model ...")
-    config_file = Config.fromfile("references/mmdetection/configs/cascade_rcnn/cascade_rcnn_r50_fpn_1x_coco_SPINE.py")
-    checkpoint_file = "tutorial_exps/epoch_4_no_shuffle_055mAP.pth"
+    # config_file = Config.fromfile("references/mmdetection/configs/cascade_rcnn/cascade_rcnn_x101_64x4d_fpn_1x_coco_SPINE.py")
+    # config_file = Config.fromfile("references/mmdetection/configs/cascade_rcnn/cascade_rcnn_x101_64x4d_fpn_1x_coco_SPINE_AUG.py")
+    # config_file = Config.fromfile("references/mmdetection/configs/cascade_rcnn/cascade_rcnn_x101_32x4d_fpn_1x_coco_SPINE.py")
+    # config_file = Config.fromfile("references/mmdetection/configs/cascade_rcnn/cascade_rcnn_r101_fpn_1x_coco_SPINE.py")
+    # config_file = Config.fromfile("references/mmdetection/configs/cascade_rcnn/cascade_rcnn_r50_fpn_1x_coco_SPINE_AUG.py")
+
+    # config_file = Config.fromfile("references/mmdetection/configs/gfl/gfl_x101_32x4d_fpn_dconv_c4-c5_mstrain_2x_coco_SPINE.py")
+    # config_file = Config.fromfile("references/mmdetection/configs/gfl/gfl_x101_32x4d_fpn_dconv_c4-c5_mstrain_2x_coco_SPINE_AUG.py")
+
+    # config_file = Config.fromfile("references/mmdetection/configs/vfnet/vfnet_x101_64x4d_fpn_mdconv_c3-c5_mstrain_2x_coco_SPINE.py")
+
+    config_file = Config.fromfile("references/mmdetection/configs/deformable_detr/deformable_detr_twostage_refine_r50_16x2_50e_coco_SPINE.py")
+
+    checkpoint_file = "tutorial_exps/Def_DETR_R50_no_data_augmentation/epoch_5.pth"
     device = 'cuda:0'
     # init a detector
     model = init_detector(config_file, checkpoint_file, device=device)
