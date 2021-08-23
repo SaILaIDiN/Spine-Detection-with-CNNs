@@ -11,3 +11,7 @@ tracking_offset.py
 INFO
 result*.png
 /tutorial_exps
+
+% % DIVERSE (not relevant for main code)
+check_config.py
+correct_data_dir.py
