@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 
-# calculates centroids from tracked csv-file by averaging spines over all there occurences
+# calculates centroids from tracked csv-file by averaging spines over all there occurrences
 def calc_centroids_given_tracking(tracking_filename: str, reg_expr_for_filename: str = '(.*)SR052N1D1day1(.*)',
                                   det_thresh: float = 0.5) -> OrderedDict:
     """ Calculate centroids for specific images only
@@ -64,14 +64,17 @@ if __name__ == "__main__":
     parser.add_argument('-det', '--detfolder', dest='detFolder', default='',
                         help='folder containing your detected tracking file')
     # Optional
-    parser.add_argument('-t', '--threshold', dest='iouThreshold', type=float, default=0.3, metavar='',
-                        help='IOU threshold. Default 0.5')
+    parser.add_argument('-ot', '--overlap-threshold', dest='overlap_threshold', type=float, default=0.3, metavar='',
+                        help='IoM threshold, defines when a prediction box and a GT box overlap enough to be matched.'
+                             'Impacts the number of total overlaps shown in the evaluation print statement.')
+    parser.add_argument('-dt', '--detection-threshold', dest='det_threshold', default=0.5, metavar='',
+                        help='Detection threshold for real detection, defines which spines will be tracked.'
+                             'Impacts the number of total tracked spines shown in the evaluation print statement.'
+                             'Also impacts the total number of overlaps as a secondary consequence.')
     parser.add_argument('-m', dest='metric', default='iom', metavar='',
                         help='used metric. Options are \'iom\' or \'iou\'')
     parser.add_argument('-tr', '--tracking', default='',
                         help='path of used tracking file')
-    parser.add_argument('-dt', '--detection-threshold', dest='det_threshold', default=0.5, metavar='',
-                        help='detection threshold for real detection')
     parser.add_argument('-gt', dest='gt_file', default='output/tracking/GT/data_tracking.csv',
                         help='given a list of gtFolders, name of gt_file is enough, '
                              'otherwise a list of gt_files must be given, comma separated')
@@ -82,8 +85,6 @@ if __name__ == "__main__":
     parser.add_argument('-ow', '--overwrite', action='store_true',
                         help='whether to overwrite the results of the previous iteration or just append it')
     args = parser.parse_args()
-
-    iouThreshold = args.iouThreshold
 
     # Arguments validation
     errors = []
@@ -140,7 +141,7 @@ if __name__ == "__main__":
 
         nr_gt = len(centroids1)
         nr_det = len(centroids2)
-        thresh = 0.5
+        thresh = args.overlap_threshold
         # combine both boxes
         total_spines1 = len(centroids1)
         total_spines2 = len(centroids2)
@@ -155,15 +156,17 @@ if __name__ == "__main__":
             # Andernfalls muss noch die z-Achse berucksichtigt werden!
             all_dist = [(key, other_key, calc_metric(centroids2[key], centroids1[other_key], args.metric))
                         for other_key in centroids1.keys()]
-            all_dist.sort(key=lambda x: x[2], reverse=True)
+            all_dist.sort(key=lambda x: x[2], reverse=True)  # sort by metric (here: IoM)
 
             # correct centroid with highest IoM
             if len(all_dist) == 0:
                 continue
             best_key, best_other_key, best_metric = all_dist[0]
             if best_metric >= thresh:
+                # PC: both_spines[prediction_key] = (best_GT_key, their_overlap)
                 both_spines[best_key] = (best_other_key, best_metric)
-                del centroids1[best_other_key]
+                del centroids1[best_other_key]  # to not assign this GT box to another detection box
+                # so it is first-come-first-serve
         print(f"{'# spines':^13s}|{nr_gt:^10d}|{nr_det:^10d}|{len(both_spines):^10d}")
 
         total_spines.append(total_spines1)
