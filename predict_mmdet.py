@@ -231,7 +231,7 @@ def load_model():
     """ Load frozen model """
 
     print("[INFO] Loading model ...")
-    # config_file = Config.fromfile("references/mmdetection/configs/cascade_rcnn/cascade_rcnn_x101_64x4d_fpn_1x_coco_SPINE.py")
+    config_file = Config.fromfile("references/mmdetection/configs/cascade_rcnn/cascade_rcnn_x101_64x4d_fpn_1x_coco_SPINE.py")
     # config_file = Config.fromfile("references/mmdetection/configs/cascade_rcnn/cascade_rcnn_x101_64x4d_fpn_1x_coco_SPINE_AUG.py")
     # config_file = Config.fromfile("references/mmdetection/configs/cascade_rcnn/cascade_rcnn_x101_32x4d_fpn_1x_coco_SPINE.py")
     # config_file = Config.fromfile("references/mmdetection/configs/cascade_rcnn/cascade_rcnn_r101_fpn_1x_coco_SPINE.py")
@@ -242,9 +242,12 @@ def load_model():
 
     # config_file = Config.fromfile("references/mmdetection/configs/vfnet/vfnet_x101_64x4d_fpn_mdconv_c3-c5_mstrain_2x_coco_SPINE.py")
 
-    config_file = Config.fromfile("references/mmdetection/configs/deformable_detr/deformable_detr_twostage_refine_r50_16x2_50e_coco_SPINE.py")
+    # config_file = Config.fromfile("references/mmdetection/configs/deformable_detr/deformable_detr_twostage_refine_r50_16x2_50e_coco_SPINE.py")
 
-    checkpoint_file = "tutorial_exps/Def_DETR_R50_no_data_augmentation/epoch_5.pth"
+    # checkpoint_file = "tutorial_exps/Def_DETR_R50_no_data_augmentation/epoch_9.pth"
+    # checkpoint_file = "tutorial_exps/GFL_RX101_no_data_augmentation/epoch_18.pth"
+    checkpoint_file = "tutorial_exps/Cascade_RCNN/RX101_64_epoch_8_F1_0_848.pth"
+
     device = 'cuda:0'
     # init a detector
     model = init_detector(config_file, checkpoint_file, device=device)
@@ -300,6 +303,7 @@ def predict_images(model, image_path, output_path, output_csv_path, threshold=0.
 
         print("Predboxes (detached): ", pred_boxes)
         print("Predscores (detached): ", pred_scores)
+        print("Pred_Output: ", pred_output)
 
         if return_csv:
             all_boxes.append(pred_boxes)

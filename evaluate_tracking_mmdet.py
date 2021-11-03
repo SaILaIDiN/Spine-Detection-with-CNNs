@@ -83,7 +83,7 @@ if __name__ == "__main__":
                         help='used metric. Options are \'iom\' or \'iou\'')
     parser.add_argument('-tr', '--tracking', default='',
                         help='path of used tracking file')
-    parser.add_argument('-gt', dest='gt_file', default='output/tracking/GT/data_tracking_min_wo_offset.csv',
+    parser.add_argument('-gt', dest='gt_file', default='output/tracking/GT/data_tracking_max_wo_offset.csv',
                         help='given a list of gtFolders, name of gt_file is enough, '
                              'otherwise a list of gt_files must be given, comma separated')
     parser.add_argument('-sp', '--savepath', dest='savePath', metavar='',
@@ -241,8 +241,8 @@ if __name__ == "__main__":
                                   thickness=1, out_file=img_output_path)
 
         print(f"{'# spines':^13s}|{nr_gt:^10d}|{nr_det:^10d}|{len(both_spines):^10d}")
-        print("n_FP: ", n_FP)
-        print("n_GT: ", n_GT)
+        # print("n_FP: ", n_FP)
+        # print("n_GT: ", n_GT)
         total_spines.append(total_spines1)
         total_both_spines.append(len(both_spines))
 
