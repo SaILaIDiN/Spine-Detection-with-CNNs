@@ -10,6 +10,52 @@ import pandas as pd
 from predict_mmdet import load_model
 
 
+parser = argparse.ArgumentParser(description='Evaluate model performance compared to groundtruth labels',
+                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+# Positional arguments
+# Mandatory
+parser.add_argument('-gtf', '--gtfolder', dest='gtFolder', default='',
+                    help='either list of folders for each GT you want to look at or one folder '
+                         'and a list of gt_file, comma separated')
+parser.add_argument('-det', '--detfolder', dest='detFolder', default='',
+                    help='folder containing your detected tracking file')
+# Optional
+parser.add_argument('-ot', '--overlap-threshold', dest='overlap_threshold', type=float, default=0.5, metavar='',
+                    help='IoM threshold, defines when a prediction box and a GT box overlap enough to be matched.'
+                         'Impacts the number of total overlaps shown in the evaluation print statement.')
+parser.add_argument('-dt', '--detection-threshold', dest='det_threshold', default=0.5, metavar='',
+                    help='Detection threshold for real detection, defines which spines will be tracked.'
+                         'Impacts the number of total tracked spines shown in the evaluation print statement.'
+                         'Also impacts the total number of overlaps as a secondary consequence.')
+parser.add_argument('-m', dest='metric', default='iom', metavar='',
+                    help='used metric. Options are \'iom\' or \'iou\'')
+parser.add_argument('-tr', '--tracking', default='',
+                    help='path of used tracking file')
+parser.add_argument('-gt', dest='gt_file', default='output/tracking/GT/data_tracking_max_wo_offset.csv',
+                    help='given a list of gtFolders, name of gt_file is enough, '
+                         'otherwise a list of gt_files must be given, comma separated')
+parser.add_argument('-sp', '--savepath', dest='savePath', metavar='',
+                    help='folder where the plots are saved')
+parser.add_argument('-sn', '--savename', dest='saveName', default='',
+                    help='name of results file')
+parser.add_argument('-ow', '--overwrite', action='store_true',
+                    help='whether to overwrite the results of the previous iteration or just append it')
+# Optional, for Advanced Behavioral Analysis
+parser.add_argument('-sf', '--show-faults', dest='show_faults', default='False',
+                    help='Boolean value, to select analysis of locations for false positives and missing GTs.')
+# parser.add_argument('-fbp', '--faulty-boxes-path', dest='faulty_boxes_path', default='',
+#                     help='Path where the images containing boxes of false positives and missing GTs are stored.')
+# For load_model() and for path/file construction in automated evaluation
+parser.add_argument('-mt', '--model_type',
+                    help='decide which model to use as config and checkpoint file. '
+                         'use one of [Cascade_RCNN, GFL, VFNet, Def_DETR]')
+parser.add_argument('-ua', '--use-aug', default='False',
+                    help='decide to load the config file with or without data augmentation')
+parser.add_argument('-me', '--model_epoch', default='epoch_1',
+                    help='decide the epoch number for the model weights. use the format of the default value')
+
+
 # calculates centroids from tracked csv-file by averaging spines over all there occurrences
 def calc_centroids_given_tracking(tracking_filename: str, reg_expr_for_filename: str = '(.*)SR052N1D1day1(.*)',
                                   det_thresh: float = 0.5) -> OrderedDict:
@@ -60,47 +106,10 @@ def calc_centroids_given_tracking(tracking_filename: str, reg_expr_for_filename:
 # Get current path to set default folders
 currentPath = os.path.dirname(os.path.abspath(__file__))
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Evaluate model performance compared to groundtruth labels',
-                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    # Positional arguments
-    # Mandatory
-    parser.add_argument('-gtf', '--gtfolder', dest='gtFolder', default='',
-                        help='either list of folders for each GT you want to look at or one folder '
-                             'and a list of gt_file, comma separated')
-    parser.add_argument('-det', '--detfolder', dest='detFolder', default='',
-                        help='folder containing your detected tracking file')
-    # Optional
-    parser.add_argument('-ot', '--overlap-threshold', dest='overlap_threshold', type=float, default=0.5, metavar='',
-                        help='IoM threshold, defines when a prediction box and a GT box overlap enough to be matched.'
-                             'Impacts the number of total overlaps shown in the evaluation print statement.')
-    parser.add_argument('-dt', '--detection-threshold', dest='det_threshold', default=0.5, metavar='',
-                        help='Detection threshold for real detection, defines which spines will be tracked.'
-                             'Impacts the number of total tracked spines shown in the evaluation print statement.'
-                             'Also impacts the total number of overlaps as a secondary consequence.')
-    parser.add_argument('-m', dest='metric', default='iom', metavar='',
-                        help='used metric. Options are \'iom\' or \'iou\'')
-    parser.add_argument('-tr', '--tracking', default='',
-                        help='path of used tracking file')
-    parser.add_argument('-gt', dest='gt_file', default='output/tracking/GT/data_tracking_max_wo_offset.csv',
-                        help='given a list of gtFolders, name of gt_file is enough, '
-                             'otherwise a list of gt_files must be given, comma separated')
-    parser.add_argument('-sp', '--savepath', dest='savePath', metavar='',
-                        help='folder where the plots are saved')
-    parser.add_argument('-sn', '--savename', dest='saveName', default='',
-                        help='name of results file')
-    parser.add_argument('-ow', '--overwrite', action='store_true',
-                        help='whether to overwrite the results of the previous iteration or just append it')
-    # Optional, for Advanced Behavioral Analysis
-    parser.add_argument('-sf', '--show-faults', dest='show_faults', default='False',
-                        help='Boolean value, to select analysis of locations for false positives and missing GTs.')
-    # parser.add_argument('-fbp', '--faulty-boxes-path', dest='faulty_boxes_path', default='',
-    #                     help='Path where the images containing boxes of false positives and missing GTs are stored.')
-    args = parser.parse_args()
-
+def evaluate_tracking_main(args):
     if args.show_faults == "True":
-        model = load_model()
+        model = load_model(args.model_type, args.use_aug, args.model_epoch)
 
     # Arguments validation
     errors = []
@@ -139,6 +148,11 @@ if __name__ == "__main__":
         detFolder = args.detFolder
     if args.tracking == '':
         raise ValueError(f"It is necessary to provide a tracking file for evaluation.")
+    # Construct the specific tracking file name if we do automated evaluations (i.e. in auto_eval.py)
+    if args.tracking == 'AUTO':
+        args.tracking = 'data_tracking_' + args.model_type + '_aug_' + args.use_aug + '_' + args.model_epoch + '.csv'
+        print("ARGS TRACKING:", args.tracking)
+        print("DET FOLDER:", args.detFolder)
     # Validate savePath
     # Create directory to save results
     savePath = args.savePath
@@ -149,8 +163,9 @@ if __name__ == "__main__":
     real_det_thresh = float(args.det_threshold)
     total_spines = []
     total_both_spines = []
-    print("  Attribute  |    GT    | Tracking | Overlap ")
-    print("------------------------------------------")
+    all_gt_versions = []
+    print("  Attribute  | GT-Version |    GT    | Tracking | Overlap ")
+    print("----------------------------------------------------------")
     for j in range(nr_gts):
         centroids1 = calc_centroids_given_tracking(final_gt_paths[j])
         centroids2 = calc_centroids_given_tracking(os.path.join(detFolder, args.tracking))
@@ -184,7 +199,7 @@ if __name__ == "__main__":
                 del centroids1[best_other_key]  # to not assign this GT box to another detection box
                 # so it is first-come-first-serve
 
-        if args.show_faults:
+        if args.show_faults == "True":
             # # Get GT boxes missed by predictions
             # transfer OrderedDict into Dataframe (for easier grouping by filename)
             n_GT = len(centroids1.keys())
@@ -239,20 +254,35 @@ if __name__ == "__main__":
                 img_output_path = os.path.join(output_path, orig_name)
                 model.show_result(img_input_path, boxes_scores, bbox_color="red", score_thr=0.5, font_size=3,
                                   thickness=1, out_file=img_output_path)
-
-        print(f"{'# spines':^13s}|{nr_gt:^10d}|{nr_det:^10d}|{len(both_spines):^10d}")
+        gt_file_name_tmp = final_gt_paths[j].split('/')[-1]
+        if "min" in gt_file_name_tmp:
+            gt_version = "min"
+        elif "maj" in gt_file_name_tmp:
+            gt_version = "maj"
+        elif "max" in gt_file_name_tmp:
+            gt_version = "max"
+        else:
+            gt_version = "unknown"
+        print(f"{'# spines':^13s}|{gt_version:^12s}|{nr_gt:^10d}|{nr_det:^10d}|{len(both_spines):^10d}")
         # print("n_FP: ", n_FP)
         # print("n_GT: ", n_GT)
+        all_gt_versions.append(gt_version)
         total_spines.append(total_spines1)
         total_both_spines.append(len(both_spines))
 
     precision = np.array(total_both_spines) / total_spines2
     recall = np.array(total_both_spines) / total_spines
     fscore = list(precision * recall * 2 / (precision + recall))
-    if args.saveName != '':
+    if args.saveName == 'AUTO':  # same usage of 'AUTO' as for args.tracking
+        filename = os.path.join(savePath, args.model_type + '_aug_' + args.use_aug + '.csv')
+        print("SAVENAME: ", filename)
+    elif args.saveName != '':
         filename = os.path.join(savePath, args.saveName + '.csv')
+        print("SAVENAME: ", filename)
     else:
         filename = os.path.join(savePath, detFolder.split('/')[-1] + '.csv')
+        print("SAVENAME: ", filename)
+
     if os.path.exists(filename):
         df = pd.read_csv(filename)
     else:
@@ -265,7 +295,9 @@ if __name__ == "__main__":
         'recall': recall,
         'fscore': fscore,
         'detection_threshold': real_det_thresh,
-        'timestamp': str(datetime.datetime.now())
+        'timestamp': str(datetime.datetime.now()),
+        'epoch': args.model_epoch[-1],
+        'gt_version': all_gt_versions
     })
     for i in range(len(precision)):
         print(f"{' Precision ' + str(i + 1):<13s}|          |{precision[i]:^10f}|")
@@ -275,10 +307,14 @@ if __name__ == "__main__":
         print(f"{' F-Score ' + str(i + 1):<13s}|          |{fscore[i]:^10f}|")
 
     # sort columns
-    new_df = new_df[['timestamp', 'detection_threshold', 'fscore', 'precision', 'recall',
+    new_df = new_df[['timestamp', 'epoch', 'gt_version', 'detection_threshold', 'fscore', 'precision', 'recall',
                      'nr_detected', 'nr_gt', 'nr_gt_detected']]
     if args.overwrite:
         new_df.to_csv(filename, index=False)
     else:
         together = df.append(new_df, sort=False)
         together.to_csv(filename, index=False)
+
+
+if __name__ == "__main__":
+    args = parser.parse_args()
