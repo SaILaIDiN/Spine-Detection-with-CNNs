@@ -151,8 +151,6 @@ def evaluate_tracking_main(args):
     # Construct the specific tracking file name if we do automated evaluations (i.e. in auto_eval.py)
     if args.tracking == 'AUTO':
         args.tracking = 'data_tracking_' + args.model_type + '_aug_' + args.use_aug + '_' + args.model_epoch + '.csv'
-        print("ARGS TRACKING:", args.tracking)
-        print("DET FOLDER:", args.detFolder)
     # Validate savePath
     # Create directory to save results
     savePath = args.savePath
@@ -264,8 +262,7 @@ def evaluate_tracking_main(args):
         else:
             gt_version = "unknown"
         print(f"{'# spines':^13s}|{gt_version:^12s}|{nr_gt:^10d}|{nr_det:^10d}|{len(both_spines):^10d}")
-        # print("n_FP: ", n_FP)
-        # print("n_GT: ", n_GT)
+
         all_gt_versions.append(gt_version)
         total_spines.append(total_spines1)
         total_both_spines.append(len(both_spines))
@@ -275,13 +272,10 @@ def evaluate_tracking_main(args):
     fscore = list(precision * recall * 2 / (precision + recall))
     if args.saveName == 'AUTO':  # same usage of 'AUTO' as for args.tracking
         filename = os.path.join(savePath, args.model_type + '_aug_' + args.use_aug + '.csv')
-        print("SAVENAME: ", filename)
     elif args.saveName != '':
         filename = os.path.join(savePath, args.saveName + '.csv')
-        print("SAVENAME: ", filename)
     else:
         filename = os.path.join(savePath, detFolder.split('/')[-1] + '.csv')
-        print("SAVENAME: ", filename)
 
     if os.path.exists(filename):
         df = pd.read_csv(filename)
