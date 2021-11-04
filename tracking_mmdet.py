@@ -40,12 +40,20 @@ parser.add_argument('-s', '--save-images', action='store_true',
 parser.add_argument('-o', '--output', required=False,
                     help='Path where tracking images and csv should be saved, default: output/tracking/MODEL')
 parser.add_argument('-f', '--file-save',
-                    help="Name of tracked data csv file", default="data_tracking.csv")
+                    help="Name of tracked data csv file", default="data_tracking")
 parser.add_argument('-mc', '--metric', default='iom',
                     help='Metric which should be used for evaluating. Currently available: iom, iou. '
                          'Own metric can be implemented as lambda function which takes two arguments and returns one.')
-parser.add_argument('-uo', '--use-offsets', action='store_true',
+parser.add_argument('-uo', '--use_offsets', default='False',
                     help='whether offsets should be used or not')
+# For load_model()
+parser.add_argument('-mt', '--model_type',
+                    help='decide which model to use as config and checkpoint file. '
+                         'use one of [Cascade_RCNN, GFL, VFNet, Def_DETR]')
+parser.add_argument('-ua', '--use-aug', default='False',
+                    help='decide to load the config file with or without data augmentation')
+parser.add_argument('-me', '--model_epoch', default='epoch_1',
+                    help='decide the epoch number for the model weights. use the format of the default value')
 
 
 def draw_boxes(img: np.ndarray, objects: OrderedDict) -> np.ndarray:
@@ -107,8 +115,9 @@ def csv_to_boxes(df):
     return boxes, scores, classes, num_detections
 
 
-if __name__ == '__main__':
-    args = parser.parse_args()
+def tracking_main(args):
+    print("USE OFFSETS:", args.use_offsets)
+    print("MODEL TYPE:", args.model_type)
     # Max diff -> (minimum) diff so that two following bboxes are connected with each other
     # iom thresh -> min iom that two boxes are considered the same in the same frame!
     MAX_DIFF = args.tau
@@ -131,7 +140,8 @@ if __name__ == '__main__':
     if not os.path.exists(args.output):
         os.makedirs(args.output)
     img_output_path = os.path.join(args.output, 'images')
-    csv_output_path = os.path.join(args.output, args.file_save)
+    csv_output_path = os.path.join(args.output, args.file_save + '_' + args.model_type + '_aug_' + args.use_aug
+                                   + '_' + args.model_epoch + '.csv')
     if args.save_images and not os.path.exists(img_output_path):
         os.makedirs(img_output_path)
 
@@ -154,9 +164,11 @@ if __name__ == '__main__':
 
     # get all boxes, scores and classes at the start if prediction is necessary:
     if args.csv is None:
-        model = predict_mmdet.load_model()
+        model = predict_mmdet.load_model(args.model_type, args.use_aug, args.model_epoch)
+        # We currently disable storing prediction images for tracking. Replace None by img_output_path to activate
+        # Other way of disabling is complicated in here and coupled to args.save_images which is always False here?!
         all_boxes, all_scores, all_classes, all_num_detections = predict_mmdet.predict_images(
-            model, args.images, img_output_path, csv_output_path, threshold=THRESH, save_csv=False, return_csv=True)
+            model, args.images, None, csv_output_path, threshold=THRESH, save_csv=False, return_csv=True)
 
     all_csv_paths = list(Path().rglob(args.csv))
 
@@ -164,7 +176,7 @@ if __name__ == '__main__':
             iomThresh=IOM_THRESH, maxVol=MAX_VOL, metric=METRIC)
 
     # get offsets if we want to use them
-    if args.use_offsets:
+    if args.use_offsets == "True":
         sr, neuron, dend, day = 52, 1, 1, 1
         arrx = scipy.io.loadmat(f'data/offsets/SR{sr}N{neuron}D{dend}offsetX.mat')[f'SR{sr}N{neuron}D{dend}offsetX']
         arry = scipy.io.loadmat(f'data/offsets/SR{sr}N{neuron}D{dend}offsetY.mat')[f'SR{sr}N{neuron}D{dend}offsetY']
@@ -242,7 +254,7 @@ if __name__ == '__main__':
             num_detections = num_detections[0]
 
         # convert all detections from different stacks into one stack (via offset matlab files)
-        if args.use_offsets:
+        if args.use_offsets == "True":
             # format of img name: SR52N1D1day1stack1-xx.png
             stack_nr = int(orig_img[-8])
             # print("BOXES shape: ", boxes.shape)
@@ -301,3 +313,8 @@ if __name__ == '__main__':
     print(f"Nr of spines found: {nr_all_ind}")
 
     print('[INFO] Written predictions to ' + csv_output_path + '.')
+    return
+
+
+if __name__ == '__main__':
+    args = parser.parse_args()

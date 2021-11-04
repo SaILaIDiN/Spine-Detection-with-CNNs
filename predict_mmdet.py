@@ -37,6 +37,14 @@ parser.add_argument('-s', '--save_images', action='store_true',
                     help='Activate this flag if images should be saved')
 parser.add_argument('-o', '--output', required=False,
                     help='Path where prediction images and csvs should be saved', default='output/prediction/MODEL')
+# For load_model() use_aug, model_epoch
+parser.add_argument('-mt', '--model_type',
+                    help='decide which model to use as config and checkpoint file. '
+                         'use one of [Cascade_RCNN, GFL, VFNet, Def_DETR]')
+parser.add_argument('-ua', '--use_aug', default='False',
+                    help='decide to load the config file with or without data augmentation')
+parser.add_argument('-me', '--model_epoch', default='epoch_1',
+                    help='decide the epoch number for the model weights. use the format of the default value')
 
 
 def image_load_encode(img_path):
@@ -227,26 +235,49 @@ def df_to_data(df):
     return rects, classes
 
 
-def load_model():
+def load_model(model_type, use_aug, model_epoch):
     """ Load frozen model """
 
+    model_folder = "tutorial_exps"
     print("[INFO] Loading model ...")
-    config_file = Config.fromfile("references/mmdetection/configs/cascade_rcnn/cascade_rcnn_x101_64x4d_fpn_1x_coco_SPINE.py")
-    # config_file = Config.fromfile("references/mmdetection/configs/cascade_rcnn/cascade_rcnn_x101_64x4d_fpn_1x_coco_SPINE_AUG.py")
-    # config_file = Config.fromfile("references/mmdetection/configs/cascade_rcnn/cascade_rcnn_x101_32x4d_fpn_1x_coco_SPINE.py")
-    # config_file = Config.fromfile("references/mmdetection/configs/cascade_rcnn/cascade_rcnn_r101_fpn_1x_coco_SPINE.py")
-    # config_file = Config.fromfile("references/mmdetection/configs/cascade_rcnn/cascade_rcnn_r50_fpn_1x_coco_SPINE_AUG.py")
+    if model_type == "Cascade-RCNN":
+        if use_aug == "True":
+            checkpoint_file = os.path.join(model_folder, "Cascade_RCNN_data_augmentation")
+            config_file = Config.fromfile(
+                "references/mmdetection/configs/cascade_rcnn/cascade_rcnn_x101_64x4d_fpn_1x_coco_SPINE_AUG.py")
+        else:
+            checkpoint_file = os.path.join(model_folder, "Cascade_RCNN_no_data_augmentation")
+            config_file = Config.fromfile(
+                "references/mmdetection/configs/cascade_rcnn/cascade_rcnn_x101_64x4d_fpn_1x_coco_SPINE.py")
+    elif model_type == "GFL":
+        if use_aug == "True:":
+            checkpoint_file = os.path.join(model_folder, "GFL_RX101_data_augmentation")
+            config_file = Config.fromfile(
+                "references/mmdetection/configs/gfl/gfl_x101_32x4d_fpn_dconv_c4-c5_mstrain_2x_coco_SPINE_AUG.py")
+        else:
+            checkpoint_file = os.path.join(model_folder, "GFL_RX101_no_data_augmentation")
+            config_file = Config.fromfile(
+                "references/mmdetection/configs/gfl/gfl_x101_32x4d_fpn_dconv_c4-c5_mstrain_2x_coco_SPINE.py")
+    elif model_type == "VFNet":
+        if use_aug == "True":
+            checkpoint_file = os.path.join(model_folder, "VFNet_RX101_data_augmentation")
+            config_file = Config.fromfile(
+                "references/mmdetection/configs/vfnet/vfnet_x101_64x4d_fpn_mdconv_c3-c5_mstrain_2x_coco_SPINE_AUG.py")
+        else:
+            checkpoint_file = os.path.join(model_folder, "VFNet_RX101_no_data_augmentation")
+            config_file = Config.fromfile(
+                "references/mmdetection/configs/vfnet/vfnet_x101_64x4d_fpn_mdconv_c3-c5_mstrain_2x_coco_SPINE.py")
+    elif model_type == "Def_DETR":
+        checkpoint_file = os.path.join(model_folder, "Def_DETR_R50_no_data_augmentation")
+        config_file = Config.fromfile(
+            "references/mmdetection/configs/deformable_detr/deformable_detr_twostage_refine_r50_16x2_50e_coco_SPINE.py")
+    else:
+        checkpoint_file = os.path.join(model_folder, "Cascade_RCNN")
+        config_file = Config.fromfile(
+           "references/mmdetection/configs/cascade_rcnn/cascade_rcnn_r50_fpn_1x_coco_SPINE.py")
 
-    # config_file = Config.fromfile("references/mmdetection/configs/gfl/gfl_x101_32x4d_fpn_dconv_c4-c5_mstrain_2x_coco_SPINE.py")
-    # config_file = Config.fromfile("references/mmdetection/configs/gfl/gfl_x101_32x4d_fpn_dconv_c4-c5_mstrain_2x_coco_SPINE_AUG.py")
-
-    # config_file = Config.fromfile("references/mmdetection/configs/vfnet/vfnet_x101_64x4d_fpn_mdconv_c3-c5_mstrain_2x_coco_SPINE.py")
-
-    # config_file = Config.fromfile("references/mmdetection/configs/deformable_detr/deformable_detr_twostage_refine_r50_16x2_50e_coco_SPINE.py")
-
-    # checkpoint_file = "tutorial_exps/Def_DETR_R50_no_data_augmentation/epoch_9.pth"
-    # checkpoint_file = "tutorial_exps/GFL_RX101_no_data_augmentation/epoch_18.pth"
-    checkpoint_file = "tutorial_exps/Cascade_RCNN/RX101_64_epoch_8_F1_0_848.pth"
+    # construct checkpoint file name
+    checkpoint_file = os.path.join(checkpoint_file, model_epoch + ".pth")
 
     device = 'cuda:0'
     # init a detector
@@ -364,7 +395,7 @@ if __name__ == '__main__':
 
     # Decide whether to predict the bboxes or to load from csv
     if not args.use_csv:
-        model = load_model()
+        model = load_model(args.model_type, args.use_aug, args.model_epoch)
     else:
         print("[INFO] Loading detections from csv file ...")
         df = pd.read_csv(args.model)
