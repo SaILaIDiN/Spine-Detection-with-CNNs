@@ -290,7 +290,7 @@ def evaluate_tracking_main(args):
         'fscore': fscore,
         'detection_threshold': real_det_thresh,
         'timestamp': str(datetime.datetime.now()),
-        'epoch': args.model_epoch[-1],
+        'epoch': args.model_epoch.split('_')[-1],
         'gt_version': all_gt_versions
     })
     for i in range(len(precision)):
