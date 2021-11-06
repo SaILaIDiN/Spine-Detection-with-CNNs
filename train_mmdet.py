@@ -3,6 +3,7 @@ import os
 import mmcv
 from mmcv import Config
 from mmdet.apis.train import set_random_seed
+from dataset_mmdet import SpineDataset, DATASETS
 import os.path as osp
 from mmdet.datasets.builder import build_dataset
 from mmdet.models.builder import build_detector
@@ -103,12 +104,14 @@ def train_main(args):
     cfg.load_from = coco_checkpoint
 
     # directory for the trained model weights
-    cfg.work_dir = os.path.join(dir_train_checkpoint + '_aug_' + use_aug,
-                                'lr_' + args.learning_rate + '_warmup_' + args.warm_up)
+    cfg.work_dir = os.path.join(dir_train_checkpoint,
+                                'lr_' + str(args.learning_rate) + '_warmup_' + str(args.warm_up))
 
+    # # # NOTE: the usage of 'if args.XYZ is not None:' means that if the parser passes a value of type None,
+    # the config file will not be updated inside train_mmdet.py and thus keeps its default config of that feature!
+    # So be sure about which parameter/feature needs this or not.
     cfg.optimizer.lr = args.learning_rate
-    if args.warm_up is not None:
-        cfg.lr_config.warmup = args.warm_up
+    cfg.lr_config.warmup = args.warm_up
     if args.steps_decay is not None:
         cfg.lr_config.step = args.steps_decay
     cfg.runner.max_epochs = args.max_epochs
@@ -125,15 +128,15 @@ def train_main(args):
 
     # # Config adjustment for Data Augmentation
     if args.random_brightness is not None:
-        cfg.albu_train_transforms.RandomBrightnessContrast.brightness_limit = args.random_brightness
+        cfg.albu_train_transforms[3].brightness_limit = args.random_brightness
     if args.random_contrast is not None:
-        cfg.albu_train_transforms.RandomBrightnessContrast.contrast_limit = args.random_contrast
+        cfg.albu_train_transforms[3].contrast_limit = args.random_contrast
     if args.vertical_flip is not None:
-        cfg.albu_train_transforms.VerticalFlip.p = args.vertical_flip
+        cfg.albu_train_transforms[0].p = args.vertical_flip
     if args.horizontal_flip is not None:
-        cfg.albu_train_transforms.HorizontalFlip.p = args.horizontal_flip
+        cfg.albu_train_transforms[1].p = args.horizontal_flip
     if args.rotate is not None:
-        cfg.albu_train_transforms.Rotate.p = args.rotate
+        cfg.albu_train_transforms[2].p = args.rotate
 
     # We can initialize the logger for training and have a look
     # at the final config used for training
