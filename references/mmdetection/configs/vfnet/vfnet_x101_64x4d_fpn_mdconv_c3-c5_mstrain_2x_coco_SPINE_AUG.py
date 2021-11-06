@@ -64,43 +64,26 @@ img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
 albu_train_transforms = [
     dict(
-        type='ShiftScaleRotate',
-        shift_limit=0.0625,
-        scale_limit=0.0,
-        rotate_limit=0,
-        interpolation=1,
+    	type='VerticalFlip',
+    	p=0.5),
+    dict(
+        type='HorizontalFlip',
+        p=0.5),
+    dict(
+        type='Rotate',
+        limit=[90, 90],
         p=0.5),
     dict(
         type='RandomBrightnessContrast',
         brightness_limit=[0.1, 0.3],
         contrast_limit=[0.1, 0.3],
         p=0.2),
-    dict(
-        type='OneOf',
-        transforms=[
-            dict(
-                type='RGBShift',
-                r_shift_limit=10,
-                g_shift_limit=10,
-                b_shift_limit=10,
-                p=1.0),
-            dict(
-                type='HueSaturationValue',
-                hue_shift_limit=20,
-                sat_shift_limit=30,
-                val_shift_limit=20,
-                p=1.0)
-        ],
-        p=0.1),
-    dict(type='JpegCompression', quality_lower=85, quality_upper=95, p=0.2),
-    dict(type='ChannelShuffle', p=0.1),
-    dict(
-        type='OneOf',
-        transforms=[
-            dict(type='Blur', blur_limit=3, p=1.0),
-            dict(type='MedianBlur', blur_limit=3, p=1.0)
-        ],
-        p=0.1),
+    dict(# Make the image more black or more white overall, only value is useful here in greyscale
+        type='HueSaturationValue',
+        hue_shift_limit=0,
+        sat_shift_limit=0,
+        val_shift_limit=0, # But color value seems to be the same as brightness
+        p=1.0),
 ]
 train_pipeline = [
     dict(type='LoadImageFromFile'),
