@@ -38,14 +38,15 @@ args_train = parser_train.parse_args()
 argparse_train_dict = vars(args_train)
 
 # # # Hardcoded values for basic training setup
-list_model_type = ["VFNet"]
-list_use_aug = ["True", "False"]
+list_model_type = ["Def_DETR"]
+list_use_aug = ["False"]
 val_max_epochs = 2
 # list_learning_rate = [0.001, 0.0005, 0.0001, 0.00005, 0.00001, 0.000005, 0.000001]
 list_learning_rate = [0.001, 0.000001]
 list_warm_up = [None]  # can use 'constant', 'linear', 'exp' or None
 # val_steps_decay = [5, 7]  # format [step_1, step_2, ..]
 val_steps_decay = None
+val_dropout = 0.5
 
 # # # Hardcoded values for data augmentation
 val_vertical_flip = 0.5
@@ -59,7 +60,8 @@ for model_type in list_model_type:
             continue  # because this model has no data augmentation
         for lr in list_learning_rate:
             for warm_up in list_warm_up:
-                dict_tmp = get_training_dict(model_type, use_aug, lr, val_max_epochs, warm_up, val_steps_decay)
+                dict_tmp = get_training_dict(model_type, use_aug, lr, val_max_epochs, warm_up, val_steps_decay,
+                                             dropout=val_dropout)
                 argparse_train_dict.update(dict_tmp)
                 if use_aug == "True":
                     dict_tmp = get_data_aug_dict(vertical_flip=val_vertical_flip,

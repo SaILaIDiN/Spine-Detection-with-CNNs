@@ -123,7 +123,7 @@ def train_main(args):
 
     if args.model_type == "Def_DETR" and args.dropout is not None:
         cfg.model.bbox_head.transformer.encoder.transformerlayers.ffn_dropout = args.dropout
-        # cfg.model.bbox_head.transformer.decoder.transformerlayers.attn_cfgs.dropout = args.dropout
+        cfg.model.bbox_head.transformer.decoder.transformerlayers.attn_cfgs[0].dropout = args.dropout
         cfg.model.bbox_head.transformer.decoder.transformerlayers.ffn_dropout = args.dropout
 
     # # Config adjustment for Data Augmentation
