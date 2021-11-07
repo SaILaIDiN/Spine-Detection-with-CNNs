@@ -45,6 +45,8 @@ parser.add_argument('-ua', '--use_aug', default='False',
                     help='decide to load the config file with or without data augmentation')
 parser.add_argument('-me', '--model_epoch', default='epoch_1',
                     help='decide the epoch number for the model weights. use the format of the default value')
+parser.add_argument('-pc', '--param_config', default='',
+                    help='string that contains all parameters intentionally tweaked during optimization')
 
 
 def image_load_encode(img_path):
@@ -235,8 +237,12 @@ def df_to_data(df):
     return rects, classes
 
 
-def load_model(model_type, use_aug, model_epoch):
-    """ Load frozen model """
+def load_model(model_type, use_aug, model_epoch, param_config):
+    """ Load frozen model
+        Args:
+            param_config (str): contains a pregenerated string of the tweaked hyperparameters used to navigate through
+                                model folders
+    """
 
     model_folder = "tutorial_exps"
     print("[INFO] Loading model ...")
@@ -277,7 +283,7 @@ def load_model(model_type, use_aug, model_epoch):
            "references/mmdetection/configs/cascade_rcnn/cascade_rcnn_r50_fpn_1x_coco_SPINE.py")
 
     # construct checkpoint file name
-    checkpoint_file = os.path.join(checkpoint_file, model_epoch + ".pth")
+    checkpoint_file = os.path.join(checkpoint_file, os.path.join(param_config, model_epoch + ".pth"))
 
     device = 'cuda:0'
     # init a detector
@@ -395,7 +401,7 @@ if __name__ == '__main__':
 
     # Decide whether to predict the bboxes or to load from csv
     if not args.use_csv:
-        model = load_model(args.model_type, args.use_aug, args.model_epoch)
+        model = load_model(args.model_type, args.use_aug, args.model_epoch, args.param_config)
     else:
         print("[INFO] Loading detections from csv file ...")
         df = pd.read_csv(args.model)

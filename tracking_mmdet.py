@@ -54,6 +54,8 @@ parser.add_argument('-ua', '--use-aug', default='False',
                     help='decide to load the config file with or without data augmentation')
 parser.add_argument('-me', '--model_epoch', default='epoch_1',
                     help='decide the epoch number for the model weights. use the format of the default value')
+parser.add_argument('-pc', '--param_config', default='',
+                    help='string that contains all parameters intentionally tweaked during optimization')
 
 
 def draw_boxes(img: np.ndarray, objects: OrderedDict) -> np.ndarray:
@@ -116,8 +118,6 @@ def csv_to_boxes(df):
 
 
 def tracking_main(args):
-    print("USE OFFSETS:", args.use_offsets)
-    print("MODEL TYPE:", args.model_type)
     # Max diff -> (minimum) diff so that two following bboxes are connected with each other
     # iom thresh -> min iom that two boxes are considered the same in the same frame!
     MAX_DIFF = args.tau
@@ -140,7 +140,9 @@ def tracking_main(args):
     if not os.path.exists(args.output):
         os.makedirs(args.output)
     img_output_path = os.path.join(args.output, 'images')
-    csv_output_path = os.path.join(args.output, args.file_save + '_' + args.model_type + '_aug_' + args.use_aug
+    csv_output_path = os.path.join(args.output, args.param_config)
+    Path(csv_output_path).mkdir(parents=True, exist_ok=True)
+    csv_output_path = os.path.join(csv_output_path, args.file_save + '_' + args.model_type + '_aug_' + args.use_aug
                                    + '_' + args.model_epoch + '.csv')
     if args.save_images and not os.path.exists(img_output_path):
         os.makedirs(img_output_path)
@@ -164,7 +166,7 @@ def tracking_main(args):
 
     # get all boxes, scores and classes at the start if prediction is necessary:
     if args.csv is None:
-        model = predict_mmdet.load_model(args.model_type, args.use_aug, args.model_epoch)
+        model = predict_mmdet.load_model(args.model_type, args.use_aug, args.model_epoch, args.param_config)
         # We currently disable storing prediction images for tracking. Replace None by img_output_path to activate
         # Other way of disabling is complicated in here and coupled to args.save_images which is always False here?!
         all_boxes, all_scores, all_classes, all_num_detections = predict_mmdet.predict_images(

@@ -2,7 +2,7 @@ import argparse
 import os
 import re
 import datetime
-
+from pathlib import Path
 from collections import OrderedDict
 from utils_FV import calc_metric
 import numpy as np
@@ -54,6 +54,8 @@ parser.add_argument('-ua', '--use-aug', default='False',
                     help='decide to load the config file with or without data augmentation')
 parser.add_argument('-me', '--model_epoch', default='epoch_1',
                     help='decide the epoch number for the model weights. use the format of the default value')
+parser.add_argument('-pc', '--param_config', default='',
+                    help='string that contains all parameters intentionally tweaked during optimization')
 
 
 # calculates centroids from tracked csv-file by averaging spines over all there occurrences
@@ -109,7 +111,7 @@ currentPath = os.path.dirname(os.path.abspath(__file__))
 
 def evaluate_tracking_main(args):
     if args.show_faults == "True":
-        model = load_model(args.model_type, args.use_aug, args.model_epoch)
+        model = load_model(args.model_type, args.use_aug, args.model_epoch, args.param_config)
 
     # Arguments validation
     errors = []
@@ -166,7 +168,8 @@ def evaluate_tracking_main(args):
     print("----------------------------------------------------------")
     for j in range(nr_gts):
         centroids1 = calc_centroids_given_tracking(final_gt_paths[j])
-        centroids2 = calc_centroids_given_tracking(os.path.join(detFolder, args.tracking))
+        centroids2 = calc_centroids_given_tracking(os.path.join(detFolder,
+                                                                os.path.join(args.param_config, args.tracking)))
 
         nr_gt = len(centroids1)
         nr_det = len(centroids2)
@@ -271,7 +274,10 @@ def evaluate_tracking_main(args):
     recall = np.array(total_both_spines) / total_spines
     fscore = list(precision * recall * 2 / (precision + recall))
     if args.saveName == 'AUTO':  # same usage of 'AUTO' as for args.tracking
-        filename = os.path.join(savePath, args.model_type + '_aug_' + args.use_aug + '.csv')
+        filename = os.path.join(savePath, args.model_type + '_aug_' + args.use_aug)
+        filename = os.path.join(filename, args.param_config)
+        Path(filename).mkdir(parents=True, exist_ok=True)
+        filename = os.path.join(filename, args.model_type + '_aug_' + args.use_aug + '_eval.csv')
     elif args.saveName != '':
         filename = os.path.join(savePath, args.saveName + '.csv')
     else:
