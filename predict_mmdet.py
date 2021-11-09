@@ -256,7 +256,7 @@ def load_model(model_type, use_aug, model_epoch, param_config):
             config_file = Config.fromfile(
                 "references/mmdetection/configs/cascade_rcnn/cascade_rcnn_x101_64x4d_fpn_1x_coco_SPINE.py")
     elif model_type == "GFL":
-        if use_aug == "True:":
+        if use_aug == "True":
             checkpoint_file = os.path.join(model_folder, "GFL_RX101_data_augmentation")
             config_file = Config.fromfile(
                 "references/mmdetection/configs/gfl/gfl_x101_32x4d_fpn_dconv_c4-c5_mstrain_2x_coco_SPINE_AUG.py")

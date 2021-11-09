@@ -16,6 +16,7 @@ def get_training_dict(model_type, use_aug, lr,
                 # all data augmentation functions need to be reset or they will pass into the next configuration!
                 'random_brightness': None,
                 'random_contrast': None,
+                'p_rbc': None,
                 'vertical_flip': None,
                 'horizontal_flip': None,
                 'rotate': None
@@ -23,10 +24,11 @@ def get_training_dict(model_type, use_aug, lr,
     return dict_tmp
 
 
-def get_data_aug_dict(random_brightness=None, random_contrast=None, vertical_flip=None,
-                      horizontal_flip=None, rotate=None):
+def get_data_aug_dict(random_brightness=None, random_contrast=None, p_rbc=None,
+                      vertical_flip=None, horizontal_flip=None, rotate=None):
     dict_tmp = {'random_brightness': random_brightness,
                 'random_contrast': random_contrast,
+                'p_rbc': p_rbc,
                 'vertical_flip': vertical_flip,
                 'horizontal_flip': horizontal_flip,
                 'rotate': rotate
@@ -50,9 +52,12 @@ val_dropout = 0.5
 list_momentum = [0.9, 0.95, 0.99]
 
 # # # Hardcoded values for data augmentation
-val_vertical_flip = 0.5
-val_horizontal_flip = 0.5
-val_rotate = 0.5
+val_vertical_flip = None  # 0.5
+val_horizontal_flip = None  # 0.5
+val_rotate = None  # 0.5
+val_brightness_limit = None  # [0.1, 0.3]
+val_contrast_limit = None  # [0.1, 0.3]
+val_p_rbc = None  # 0.2
 
 # # # NOTE: build your training loops exactly for a specific training pattern
 for model_type in list_model_type:
@@ -67,7 +72,9 @@ for model_type in list_model_type:
                     argparse_train_dict.update(dict_tmp)
                     if use_aug == "True":
                         dict_tmp = get_data_aug_dict(vertical_flip=val_vertical_flip,
-                                                     horizontal_flip=val_horizontal_flip, rotate=val_rotate)
+                                                     horizontal_flip=val_horizontal_flip, rotate=val_rotate,
+                                                     random_brightness=val_brightness_limit,
+                                                     random_contrast=val_contrast_limit, p_rbc=val_p_rbc)
                         argparse_train_dict.update(dict_tmp)
                     train_main(args_train)
                     # try:

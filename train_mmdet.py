@@ -28,6 +28,7 @@ parser.add_argument('-wd', '--weight_decay', default=None, help='only for optimi
 parser.add_argument('-do', '--dropout', default=None, help='overloading this parameter, varies by model type!')
 
 # The following arguments are secondary parameters used for data augmentation
+parser.add_argument('-prbc', '--p_rbc', default=None, help='p for RandomBrightnessContrast')
 parser.add_argument('-rb', '--random_brightness', default=None, help='from RandomBrightnessContrast')
 parser.add_argument('-rc', '--random_contrast', default=None, help='from RandomBrightnessContrast')
 parser.add_argument('-vf', '--vertical_flip', default=None, help='p for VerticalFlip')
@@ -57,7 +58,7 @@ def train_main(args):
         coco_checkpoint = \
             'references/mmdetection/checkpoints/cascade_rcnn_x101_64x4d_fpn_1x_coco_20200515_075702-43ce6a30.pth'
     elif model_type == "GFL":
-        if use_aug == "True:":
+        if use_aug == "True":
             dir_train_checkpoint = os.path.join(model_folder, "GFL_RX101_data_augmentation")
             config_file = Config.fromfile(
                 "references/mmdetection/configs/gfl/gfl_x101_32x4d_fpn_dconv_c4-c5_mstrain_2x_coco_SPINE_AUG.py")
@@ -131,6 +132,8 @@ def train_main(args):
         cfg.model.bbox_head.transformer.decoder.transformerlayers.ffn_dropout = args.dropout
 
     # # Config adjustment for Data Augmentation
+    if args.p_rbc is not None:
+        cfg.albu_train_transforms[3].p = args.p_rbc
     if args.random_brightness is not None:
         cfg.albu_train_transforms[3].brightness_limit = args.random_brightness
     if args.random_contrast is not None:
