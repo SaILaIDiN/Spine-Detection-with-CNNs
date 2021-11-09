@@ -50,6 +50,7 @@ use_offsets = "True"
 list_learning_rate = ['0.001', '0.0001', '1e-05', '1e-06', '1e-07']  # has to be of type str because mmdetection
 # translates long float numbers into 'Xe-0Y' format when config file is loaded, starts at '1e-05'
 list_warm_up = [None]
+list_momentum = ['0.9', '0.95', '0.99']
 
 args_eval_tracking = parser_eval_tracking.parse_args()
 argparse_eval_tracking_dict = vars(args_eval_tracking)
@@ -61,17 +62,18 @@ for model_type in list_model_type:
         # build up the relevant loops for the 'param_config' string before you proceed with epochs
         for lr in list_learning_rate:
             for warm_up in list_warm_up:
-                param_config = 'lr_' + lr + '_warmup_' + str(warm_up)
-                for epoch in list_epochs:
-                    dict_tmp = get_tracking_dict(model_type, use_aug, epoch, use_offsets, param_config)
-                    argparse_tracking_dict.update(dict_tmp)
-                    try:
-                        tracking_main(args_tracking)
-                    except:
-                        print("Some file or path is not existent!")
-                    dict_tmp = get_eval_tracking_dict(model_type, use_aug, epoch, param_config)
-                    argparse_eval_tracking_dict.update(dict_tmp)
-                    try:
-                        evaluate_tracking_main(args_eval_tracking)
-                    except:
-                        print("Some file or path is not existent!")
+                for momentum in list_momentum:
+                    param_config = 'lr_' + lr + '_warmup_' + str(warm_up) + '_momentum_' + momentum
+                    for epoch in list_epochs:
+                        dict_tmp = get_tracking_dict(model_type, use_aug, epoch, use_offsets, param_config)
+                        argparse_tracking_dict.update(dict_tmp)
+                        try:
+                            tracking_main(args_tracking)
+                        except:
+                            print("Some file or path is not existent!")
+                        dict_tmp = get_eval_tracking_dict(model_type, use_aug, epoch, param_config)
+                        argparse_eval_tracking_dict.update(dict_tmp)
+                        try:
+                            evaluate_tracking_main(args_eval_tracking)
+                        except:
+                            print("Some file or path is not existent!")
