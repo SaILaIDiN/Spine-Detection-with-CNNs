@@ -97,15 +97,19 @@ def train_main(args):
     set_random_seed(0, deterministic=False)
     cfg.gpu_ids = range(1)
 
+    # # # NOTE: either use 'cfg.resume_from' or 'cfg.load_from'
     # this loads the pretrained weights on COCO dataset into our model (or resume from a model)
-    # cfg.resume_from = 'tutorial_exps/epoch_14.pth'
+    # cfg.resume_from = os.path.join(dir_train_checkpoint,
+    #                                'lr_' + str(args.learning_rate) + '_warmup_' + str(args.warm_up) +
+    #                                '_momentum_' + str(args.momentum))
 
     # # Define the correct checkpoint file to start the model training with pretrained weights
     cfg.load_from = coco_checkpoint
 
     # directory for the trained model weights
     cfg.work_dir = os.path.join(dir_train_checkpoint,
-                                'lr_' + str(args.learning_rate) + '_warmup_' + str(args.warm_up))
+                                'lr_' + str(args.learning_rate) + '_warmup_' + str(args.warm_up) +
+                                '_momentum_' + str(args.momentum))
 
     # # # NOTE: the usage of 'if args.XYZ is not None:' means that if the parser passes a value of type None,
     # the config file will not be updated inside train_mmdet.py and thus keeps its default config of that feature!
