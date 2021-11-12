@@ -169,7 +169,8 @@ def evaluate_tracking_main(args):
     for j in range(nr_gts):
         centroids1 = calc_centroids_given_tracking(final_gt_paths[j])
         centroids2 = calc_centroids_given_tracking(os.path.join(detFolder,
-                                                                os.path.join(args.param_config, args.tracking)))
+                                                                os.path.join(args.param_config, args.tracking)),
+                                                   det_thresh=args.det_threshold)
 
         nr_gt = len(centroids1)
         nr_det = len(centroids2)
@@ -277,7 +278,8 @@ def evaluate_tracking_main(args):
         filename = os.path.join(savePath, args.model_type + '_aug_' + args.use_aug)
         filename = os.path.join(filename, args.param_config)
         Path(filename).mkdir(parents=True, exist_ok=True)
-        filename = os.path.join(filename, args.model_type + '_aug_' + args.use_aug + '_eval.csv')
+        filename = os.path.join(filename, args.model_type + '_aug_' + args.use_aug +
+                                '_det_threshold_' + str(args.det_threshold) + '_eval.csv')
     elif args.saveName != '':
         filename = os.path.join(savePath, args.saveName + '.csv')
     else:

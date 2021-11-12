@@ -21,7 +21,7 @@ def get_tracking_dict(model_type, use_aug, epoch, use_offsets, param_config):
     return dict_tmp
 
 
-def get_eval_tracking_dict(model_type, use_aug, epoch, param_config):
+def get_eval_tracking_dict(model_type, use_aug, epoch, param_config, det_threshold):
     dict_tmp = {"detFolder": "output/tracking/" + model_type + '_aug_' + use_aug,
                 "gtFolder": '',
                 "gt_file": "output/tracking/GT/data_tracking_gt_min.csv,"
@@ -35,22 +35,26 @@ def get_eval_tracking_dict(model_type, use_aug, epoch, param_config):
                 "model_type": model_type,
                 "use_aug": use_aug,
                 "model_epoch": epoch,
-                "param_config": param_config}
+                "param_config": param_config,
+                "det_threshold": det_threshold}
     return dict_tmp
 
 
 args_tracking = parser_tracking.parse_args()
 argparse_tracking_dict = vars(args_tracking)
 
-list_model_type = ["VFNet"]
+list_model_type = ["Cascade-RCNN"]
 list_use_aug = ["False"]
-list_epochs = ["epoch_" + str(x) for x in range(1, 11)]
+list_epochs = ["epoch_" + str(x) for x in range(16, 17)]
 use_offsets = "True"
 # Hardcoded values for parameter configuration string 'param_config'
-list_learning_rate = ['0.001', '0.0001', '1e-05', '1e-06', '1e-07']  # has to be of type str because mmdetection
+list_learning_rate = ['0.005']
+# list_learning_rate = ['0.001', '0.0001', '1e-05', '1e-06', '1e-07']  # has to be of type str because mmdetection
 # translates long float numbers into 'Xe-0Y' format when config file is loaded, starts at '1e-05'
 list_warm_up = [None]
-list_momentum = ['0.9', '0.95', '0.99']
+list_momentum = ['0.9']
+list_det_threshold = [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8]  # has to start at least with 0.5 because the tracking
+# already tracks only over 0.5 confidence
 
 args_eval_tracking = parser_eval_tracking.parse_args()
 argparse_eval_tracking_dict = vars(args_eval_tracking)
@@ -71,9 +75,10 @@ for model_type in list_model_type:
                             tracking_main(args_tracking)
                         except:
                             print("Some file or path is not existent!")
-                        dict_tmp = get_eval_tracking_dict(model_type, use_aug, epoch, param_config)
-                        argparse_eval_tracking_dict.update(dict_tmp)
-                        try:
-                            evaluate_tracking_main(args_eval_tracking)
-                        except:
-                            print("Some file or path is not existent!")
+                        for det_threshold in list_det_threshold:
+                            dict_tmp = get_eval_tracking_dict(model_type, use_aug, epoch, param_config, det_threshold)
+                            argparse_eval_tracking_dict.update(dict_tmp)
+                            try:
+                                evaluate_tracking_main(args_eval_tracking)
+                            except:
+                                print("Some file or path is not existent!")
