@@ -15,3 +15,14 @@ result*.png
 % % DIVERSE (not relevant for main code)
 check_config.py
 correct_data_dir.py
+
+references/mmdetection/tools/analysis_tools/Cascade-RCNN_Plot_Analysis
+references/mmdetection/tools/analysis_tools/GFL_Plot_Analysis
+references/mmdetection/tools/analysis_tools/VFNet_Plot_Analysis
+references/mmdetection/tools/analysis_tools/Detection_Threshold_Analysis
+references/mmdetection/tools/analysis_tools/auto_plotting.py
+references/mmdetection/tools/analysis_tools/custom_plotting.py
+references/mmdetection/tools/analysis_tools/__pycache__
+
+
+
