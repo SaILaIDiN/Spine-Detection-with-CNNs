@@ -56,10 +56,12 @@ parser.add_argument('-me', '--model_epoch', default='epoch_1',
                     help='decide the epoch number for the model weights. use the format of the default value')
 parser.add_argument('-pc', '--param_config', default='',
                     help='string that contains all parameters intentionally tweaked during optimization')
+parser.add_argument('-im', '--input_mode', default='Test',
+                    help='defines the proper way of loading either train, val or test data as input')
 
 
 # calculates centroids from tracked csv-file by averaging spines over all there occurrences
-def calc_centroids_given_tracking(tracking_filename: str, reg_expr_for_filename: str = '(.*)SR052N1D1day1(.*)',
+def calc_centroids_given_tracking(tracking_filename: str, reg_expr_for_filename: str = "Test",
                                   det_thresh: float = 0.5) -> OrderedDict:
     """ Calculate centroids for specific images only
      Args:
@@ -75,13 +77,21 @@ def calc_centroids_given_tracking(tracking_filename: str, reg_expr_for_filename:
 
     centroids = OrderedDict()
 
-    if reg_expr_for_filename is not None:
+    if reg_expr_for_filename == "Test":
+        reg_expr_for_filename = '(.*)SR052N1D1day1(.*)'
+        re_matching = re.compile(reg_expr_for_filename)
+    elif reg_expr_for_filename == "Train" or reg_expr_for_filename == "Val":
+        pass  # not elegant, but used symbolically
+    else:
         re_matching = re.compile(reg_expr_for_filename)
     # loop over all given grouped spine ids and generate average centroid
     for spine_id, spine_data in df.groupby("id"):
         # get only spine ids from test dataset
         # the next line is to filter out incomplete or wrong lines in the dataframe
-        real_data = spine_data[spine_data.apply(lambda row: re_matching.match(row['filename']) is not None, axis=1)]
+        if reg_expr_for_filename == "Train" or reg_expr_for_filename == "Val":
+            real_data = spine_data
+        else:
+            real_data = spine_data[spine_data.apply(lambda row: re_matching.match(row['filename']) is not None, axis=1)]
         # "SR052N1D1day1" in row['filename']
         if len(real_data) == 0:
             continue
@@ -152,7 +162,8 @@ def evaluate_tracking_main(args):
         raise ValueError(f"It is necessary to provide a tracking file for evaluation.")
     # Construct the specific tracking file name if we do automated evaluations (i.e. in auto_eval.py)
     if args.tracking == 'AUTO':
-        args.tracking = 'data_tracking_' + args.model_type + '_aug_' + args.use_aug + '_' + args.model_epoch + '.csv'
+        args.tracking = 'data_tracking_' + args.model_type + '_aug_' + args.use_aug + '_' + args.model_epoch + \
+                        '_' + args.input_mode + '.csv'
     # Validate savePath
     # Create directory to save results
     savePath = args.savePath
@@ -167,10 +178,10 @@ def evaluate_tracking_main(args):
     print("  Attribute  | GT-Version |    GT    | Tracking | Overlap ")
     print("----------------------------------------------------------")
     for j in range(nr_gts):
-        centroids1 = calc_centroids_given_tracking(final_gt_paths[j])
+        centroids1 = calc_centroids_given_tracking(final_gt_paths[j], reg_expr_for_filename=args.input_mode)
         centroids2 = calc_centroids_given_tracking(os.path.join(detFolder,
                                                                 os.path.join(args.param_config, args.tracking)),
-                                                   det_thresh=args.det_threshold)
+                                                   det_thresh=args.det_threshold, reg_expr_for_filename=args.input_mode)
 
         nr_gt = len(centroids1)
         nr_det = len(centroids2)
@@ -264,7 +275,7 @@ def evaluate_tracking_main(args):
         elif "max" in gt_file_name_tmp:
             gt_version = "max"
         else:
-            gt_version = "unknown"
+            gt_version = "regular"
         print(f"{'# spines':^13s}|{gt_version:^12s}|{nr_gt:^10d}|{nr_det:^10d}|{len(both_spines):^10d}")
 
         all_gt_versions.append(gt_version)
@@ -279,7 +290,7 @@ def evaluate_tracking_main(args):
         filename = os.path.join(filename, args.param_config)
         Path(filename).mkdir(parents=True, exist_ok=True)
         filename = os.path.join(filename, args.model_type + '_aug_' + args.use_aug +
-                                '_det_threshold_' + str(args.det_threshold) + '_eval.csv')
+                                '_det_threshold_' + str(args.det_threshold) + '_' + args.input_mode + '_eval.csv')
     elif args.saveName != '':
         filename = os.path.join(savePath, args.saveName + '.csv')
     else:

@@ -293,7 +293,7 @@ def load_model(model_type, use_aug, model_epoch, param_config):
 
 # save_csv flag only False if used in tracking.py!
 def predict_images(model, image_path, output_path, output_csv_path, threshold=0.3, theta=0.5, save_csv=True,
-                   return_csv=False):
+                   return_csv=False, input_mode="Test"):
     """ Predict detection on image
     Args:
         model: detecting model object
@@ -303,12 +303,23 @@ def predict_images(model, image_path, output_path, output_csv_path, threshold=0.
         threshold (float, optional): detection threshold. Defaults to 0.3.
         save_csv (bool, optional): whether csv files of detection should be saved. Defaults to True.
         return_csv (bool, optional): whether tuple of all results should be returned at the end.
+        input_mode (str, optional): differentiates between two ways of loading input image data/paths
     Returns:
         Tuple[np.ndarray]: tuple of np arrays (all_boxes, all_scores, all_classes, all_num_detections)
     """
     data = pd.DataFrame(columns=['filename', 'width', 'height', 'class', 'score', 'xmin', 'ymin', 'xmax', 'ymax'])
     all_boxes, all_scores, all_classes, all_num_detections = [], [], [], []
-    for img in sorted(glob.glob(image_path)):
+
+    if input_mode == "Test":
+        image_loader = sorted(glob.glob(image_path))
+    elif input_mode == "Train" or input_mode == "Val":
+        df = pd.read_csv(image_path)
+        image_loader = df["filename"].tolist()
+        image_loader = list(dict.fromkeys(image_loader))
+    else:
+        image_loader = []
+        print("Wrong input mode!")
+    for img in image_loader:
         image_np, orig_w, orig_h = image_load_encode(img)
 
         # Each box represents a part of the image where a particular object was detected.

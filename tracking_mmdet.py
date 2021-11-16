@@ -56,6 +56,8 @@ parser.add_argument('-me', '--model_epoch', default='epoch_1',
                     help='decide the epoch number for the model weights. use the format of the default value')
 parser.add_argument('-pc', '--param_config', default='',
                     help='string that contains all parameters intentionally tweaked during optimization')
+parser.add_argument('-im', '--input_mode', default='Test',
+                    help='defines the proper way of loading either train, val or test data as input')
 
 
 def draw_boxes(img: np.ndarray, objects: OrderedDict) -> np.ndarray:
@@ -143,12 +145,20 @@ def tracking_main(args):
     csv_output_path = os.path.join(args.output, args.param_config)
     Path(csv_output_path).mkdir(parents=True, exist_ok=True)
     csv_output_path = os.path.join(csv_output_path, args.file_save + '_' + args.model_type + '_aug_' + args.use_aug
-                                   + '_' + args.model_epoch + '.csv')
+                                   + '_' + args.model_epoch + '_' + args.input_mode + '.csv')
     if args.save_images and not os.path.exists(img_output_path):
         os.makedirs(img_output_path)
 
     # to get some annotations on the first images too, make the same backwards
-    all_imgs = sorted(glob.glob(args.images))
+    if args.input_mode == "Test":
+        all_imgs = sorted(glob.glob(args.images))
+    elif args.input_mode == "Train" or args.input_mode == "Val":
+        df = pd.read_csv(args.images)
+        all_imgs = df["filename"].tolist()
+        all_imgs = list(dict.fromkeys(all_imgs))
+    else:
+        all_imgs = []
+        print("Wrong input mode!")
 
     all_dicts = []
     total_boxes = []
@@ -170,7 +180,8 @@ def tracking_main(args):
         # We currently disable storing prediction images for tracking. Replace None by img_output_path to activate
         # Other way of disabling is complicated in here and coupled to args.save_images which is always False here?!
         all_boxes, all_scores, all_classes, all_num_detections = predict_mmdet.predict_images(
-            model, args.images, None, csv_output_path, threshold=THRESH, save_csv=False, return_csv=True)
+            model, args.images, None, csv_output_path, threshold=THRESH, save_csv=False, return_csv=True,
+            input_mode=args.input_mode)
 
     all_csv_paths = list(Path().rglob(args.csv))
 
