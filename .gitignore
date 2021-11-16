@@ -15,6 +15,7 @@ result*.png
 % % DIVERSE (not relevant for main code)
 check_config.py
 correct_data_dir.py
+manipulate_train_val_csv.py
 
 references/mmdetection/tools/analysis_tools/Cascade-RCNN_Plot_Analysis
 references/mmdetection/tools/analysis_tools/GFL_Plot_Analysis
