@@ -16,6 +16,7 @@ result*.png
 check_config.py
 correct_data_dir.py
 manipulate_train_val_csv.py
+csv_checkup.py
 
 references/mmdetection/tools/analysis_tools/Cascade-RCNN_Plot_Analysis
 references/mmdetection/tools/analysis_tools/GFL_Plot_Analysis
@@ -24,6 +25,7 @@ references/mmdetection/tools/analysis_tools/Detection_Threshold_Analysis
 references/mmdetection/tools/analysis_tools/auto_plotting.py
 references/mmdetection/tools/analysis_tools/custom_plotting.py
 references/mmdetection/tools/analysis_tools/__pycache__
+references/mmdetection/tools/analysis_tools/Detection_Threshold_Analysis_OLD_BACKUP
 
 
 
