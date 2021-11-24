@@ -1,5 +1,6 @@
 import argparse
 import os
+import glob
 import re
 import datetime
 from pathlib import Path
@@ -230,10 +231,19 @@ def evaluate_tracking_main(args):
                 # print("Boxes Scores: ", boxes_scores)  # np.array([[x1, y1, x2, y2, score], ..])
                 boxes_scores = [boxes_scores]  # turn np.array to list[np.array]
 
-                raw_img_path = "data/raw/person1"
-                img_input_path = filename.split('/')[-1]
-                img_input_path = os.path.join(raw_img_path, img_input_path)
-                output_path = "output/tracking/BehaviorAnalysis/images_mmdet_GT"
+                if args.input_mode == "Test":
+                    raw_img_path = "data/raw/test_data"  # subset of person1
+                    img_input_path = filename.split('/')[-1]
+                    img_input_path = os.path.join(raw_img_path, img_input_path)
+                elif args.input_mode == "Train" or args.input_mode == "Val":
+                    img_input_path = filename.split('/')[-1]
+                    img_input_path = glob.glob("data/raw/person*/" + img_input_path)[0]
+                    # NOTE: The glob.glob solution to find the correct path is only safe as long as each individual
+                    # image is labeled by only a single person! So it is temporary for our current dataset.
+                else:
+                    print("Correct filename for input images is required!")
+                    break
+                output_path = "output/tracking/BehaviorAnalysis/images_mmdet_GT" + f"_{args.input_mode}"
                 orig_name = img_input_path.split('/')[-1].split('\\')[-1]
                 img_output_path = os.path.join(output_path, orig_name)
                 model.show_result(img_input_path, boxes_scores, bbox_color="green", score_thr=0.5, font_size=3,
@@ -259,10 +269,19 @@ def evaluate_tracking_main(args):
                 # print("Boxes Scores: ", boxes_scores)  # np.array([[x1, y1, x2, y2, score], ..])
                 boxes_scores = [boxes_scores]  # turn np.array to list[np.array]
 
-                raw_img_path = "data/raw/person1"
-                img_input_path = filename.split('/')[-1]
-                img_input_path = os.path.join(raw_img_path, img_input_path)
-                output_path = "output/tracking/BehaviorAnalysis/images_mmdet_PRED"
+                if args.input_mode == "Test":
+                    raw_img_path = "data/raw/test_data"  # subset of person1
+                    img_input_path = filename.split('/')[-1]
+                    img_input_path = os.path.join(raw_img_path, img_input_path)
+                elif args.input_mode == "Train" or args.input_mode == "Val":
+                    img_input_path = filename.split('/')[-1]
+                    img_input_path = glob.glob("data/raw/person*/" + img_input_path)[0]
+                    # NOTE: The glob.glob solution to find the correct path is only safe as long as each individual
+                    # image is labeled by only a single person! So it is temporary for our current dataset.
+                else:
+                    print("Correct filename for input images is required!")
+                    break
+                output_path = "output/tracking/BehaviorAnalysis/images_mmdet_PRED" + f"_{args.input_mode}"
                 orig_name = img_input_path.split('/')[-1].split('\\')[-1]
                 img_output_path = os.path.join(output_path, orig_name)
                 model.show_result(img_input_path, boxes_scores, bbox_color="red", score_thr=0.5, font_size=3,
@@ -322,12 +341,15 @@ def evaluate_tracking_main(args):
     # sort columns
     new_df = new_df[['timestamp', 'epoch', 'gt_version', 'detection_threshold', 'fscore', 'precision', 'recall',
                      'nr_detected', 'nr_gt', 'nr_gt_detected']]
-    if args.overwrite:
-        new_df.to_csv(filename, index=False)
-    else:
-        together = df.append(new_df, sort=False)
-        together.to_csv(filename, index=False)
 
+    if args.show_faults is not "True":  # deactivate storing the evaluation of tracking when doing error analysis
+        if args.overwrite:
+            new_df.to_csv(filename, index=False)
+        else:
+            together = df.append(new_df, sort=False)
+            together.to_csv(filename, index=False)
+    else:
+        print("Storage of tracking evaluation is deactivated during error analysis!")
 
 if __name__ == "__main__":
     args = parser.parse_args()

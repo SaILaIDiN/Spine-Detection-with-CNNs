@@ -11,9 +11,9 @@ from evaluate_tracking_mmdet import parser as parser_eval_tracking
 
 def get_tracking_dict(model_type, use_aug, epoch, use_offsets, param_config, input_mode):
     dict_tmp = {"model": model_type + '_aug_' + use_aug,
-                # "images": "data/raw/person1/SR052N1D1day1stack*.png",
-                # "images": "data/default_annotations/train.csv",
-                "images": "data/default_annotations/valid.csv",
+                "images": "data/raw/test_data/SR052N1D1day1stack*.png",
+                #"images": "data/default_annotations/train.csv",
+                #"images": "data/default_annotations/valid.csv",
                 "input_mode": input_mode,
                 "use_offsets": use_offsets,
                 "output": None,  # reset output directory after every run
@@ -24,17 +24,17 @@ def get_tracking_dict(model_type, use_aug, epoch, use_offsets, param_config, inp
     return dict_tmp
 
 
-def get_eval_tracking_dict(model_type, use_aug, epoch, param_config, det_threshold, input_mode):
+def get_eval_tracking_dict(model_type, use_aug, epoch, param_config, det_threshold, input_mode, show_faults):
     dict_tmp = {"detFolder": "output/tracking/" + model_type + '_aug_' + use_aug,
                 "gtFolder": '',
                 # "gt_file": "output/tracking/GT/data_tracking_gt_min.csv,"
                 #            "output/tracking/GT/data_tracking_gt_maj.csv,"
                 #            "output/tracking/GT/data_tracking_gt_max.csv",
-                # "gt_file": "output/tracking/GT/data_tracking_min_wo_offset.csv,"
-                #            "output/tracking/GT/data_tracking_maj_wo_offset.csv,"
-                #            "output/tracking/GT/data_tracking_max_wo_offset.csv",
-                # "gt_file": "output/tracking/GT/data_tracking_GT_train.csv",
-                "gt_file": "output/tracking/GT/data_tracking_GT_val.csv",
+                "gt_file": "output/tracking/GT/data_tracking_min_wo_offset.csv,"
+                           "output/tracking/GT/data_tracking_maj_wo_offset.csv,"
+                           "output/tracking/GT/data_tracking_max_wo_offset.csv",
+                #"gt_file": "output/tracking/GT/data_tracking_GT_train.csv",
+                #"gt_file": "output/tracking/GT/data_tracking_GT_val.csv",
                 "tracking": "AUTO",
                 "saveName": "AUTO",
                 "model_type": model_type,
@@ -42,7 +42,8 @@ def get_eval_tracking_dict(model_type, use_aug, epoch, param_config, det_thresho
                 "model_epoch": epoch,
                 "param_config": param_config,
                 "det_threshold": det_threshold,
-                "input_mode": input_mode}
+                "input_mode": input_mode,
+                "show_faults": show_faults}
     return dict_tmp
 
 
@@ -53,7 +54,8 @@ list_model_type = ["Cascade-RCNN"]
 list_use_aug = ["False"]
 list_epochs = ["epoch_" + str(x) for x in range(16, 17)]
 use_offsets = "False"
-input_mode = "Val"  # "Train", "Val", "Test"
+input_mode = "Test"  # "Train", "Val", "Test"
+show_faults = "True"
 # Hardcoded values for parameter configuration string 'param_config'
 list_learning_rate = ['0.005']
 # list_learning_rate = ['0.001', '0.0001', '1e-05', '1e-06', '1e-07']  # has to be of type str because mmdetection
@@ -90,7 +92,7 @@ for model_type in list_model_type:
                         #     print("Some file or path is not existent!")
                         for det_threshold in list_det_threshold:
                             dict_tmp = get_eval_tracking_dict(model_type, use_aug, epoch, param_config, det_threshold,
-                                                              input_mode)
+                                                              input_mode, show_faults)
                             argparse_eval_tracking_dict.update(dict_tmp)
                             evaluate_tracking_main(args_eval_tracking)
                             # try:
