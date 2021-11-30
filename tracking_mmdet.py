@@ -24,7 +24,7 @@ parser.add_argument('-t', '--threshold',
 parser.add_argument('-a', '--appeared',
                     help='appeared counter', default=0, type=int)
 parser.add_argument('-d', '--disappeared',
-                    help='disappeared counter', default=1, type=int)
+                    help='disappeared counter', default=0, type=int)
 parser.add_argument('-th', '--theta',
                     help='Threshold for theta (detection similarity threshold)', default=0.5, type=float)
 parser.add_argument('-ta', '--tau',
