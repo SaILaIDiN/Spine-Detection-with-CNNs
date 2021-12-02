@@ -1,5 +1,6 @@
 import argparse
 import os
+import copy
 import mmcv
 from mmcv import Config
 from mmdet.apis.train import set_random_seed
@@ -80,9 +81,16 @@ def train_main(args):
         coco_checkpoint = 'references/mmdetection/checkpoints/' \
                           'vfnet_x101_64x4d_fpn_mdconv_c3-c5_mstrain_2x_coco_20201027pth-b5f6da5e.pth'
     elif model_type == "Def_DETR":
-        dir_train_checkpoint = os.path.join(model_folder, "Def_DETR_R50_no_data_augmentation")
-        config_file = Config.fromfile(
-            "references/mmdetection/configs/deformable_detr/deformable_detr_twostage_refine_r50_16x2_50e_coco_SPINE.py")
+        if use_aug == "True":
+            dir_train_checkpoint = os.path.join(model_folder, "Def_DETR_R50_data_augmentation")
+            config_file = Config.fromfile(
+                "references/mmdetection/configs/deformable_detr/"
+                "deformable_detr_twostage_refine_r50_16x2_50e_coco_SPINE_AUG.py")
+        else:
+            dir_train_checkpoint = os.path.join(model_folder, "Def_DETR_R50_no_data_augmentation")
+            config_file = Config.fromfile(
+                "references/mmdetection/configs/deformable_detr/"
+                "deformable_detr_twostage_refine_r50_16x2_50e_coco_SPINE.py")
         coco_checkpoint = 'references/mmdetection/checkpoints/' \
                           'deformable_detr_twostage_refine_r50_16x2_50e_coco_20210419_220613-9d28ab72.pth'
     else:
@@ -115,6 +123,8 @@ def train_main(args):
     # # # NOTE: the usage of 'if args.XYZ is not None:' means that if the parser passes a value of type None,
     # the config file will not be updated inside train_mmdet.py and thus keeps its default config of that feature!
     # So be sure about which parameter/feature needs this or not.
+
+    cfg.workflow = [('train', 1), ('val', 1)]
     cfg.optimizer.lr = args.learning_rate
     cfg.lr_config.warmup = args.warm_up
     if args.steps_decay is not None:
@@ -151,7 +161,10 @@ def train_main(args):
 
     # Build dataset
     datasets = [build_dataset(cfg.data.train)]
-
+    if len(cfg.workflow) == 2:
+        val_dataset = copy.deepcopy(cfg.data.val)
+        val_dataset.pipeline = cfg.data.train.pipeline
+        datasets.append(build_dataset(val_dataset))
     # Build the detector
     model = build_detector(
         cfg.model, train_cfg=cfg.get('train_cfg'), test_cfg=cfg.get('test_cfg'))
