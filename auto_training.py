@@ -45,6 +45,7 @@ list_use_aug = ["False"]
 val_max_epochs = 2
 # list_learning_rate = [0.001, 0.0005, 0.0001, 0.00005, 0.00001, 0.000005, 0.000001]
 list_learning_rate = [0.001]
+list_weight_decay = [0.0003]
 list_warm_up = [None]  # can use 'constant', 'linear', 'exp' or None
 # val_steps_decay = [5, 7]  # format [step_1, step_2, ..]
 val_steps_decay = None
@@ -65,17 +66,18 @@ for model_type in list_model_type:
         for lr in list_learning_rate:
             for warm_up in list_warm_up:
                 for momentum in list_momentum:
-                    dict_tmp = get_training_dict(model_type, use_aug, lr, val_max_epochs, warm_up, val_steps_decay,
-                                                 dropout=val_dropout, momentum=momentum)
-                    argparse_train_dict.update(dict_tmp)
-                    if use_aug == "True":
-                        dict_tmp = get_data_aug_dict(vertical_flip=val_vertical_flip,
-                                                     horizontal_flip=val_horizontal_flip, rotate=val_rotate,
-                                                     random_brightness=val_brightness_limit,
-                                                     random_contrast=val_contrast_limit, p_rbc=val_p_rbc)
+                    for weight_decay in list_weight_decay:
+                        dict_tmp = get_training_dict(model_type, use_aug, lr, val_max_epochs, warm_up, val_steps_decay,
+                                                     dropout=val_dropout, momentum=momentum, weight_decay=weight_decay)
                         argparse_train_dict.update(dict_tmp)
-                    train_main(args_train)
-                    # try:
-                    #     train_main(args_train)
-                    # except:
-                    #     print("Something has gone wrong!")
+                        if use_aug == "True":
+                            dict_tmp = get_data_aug_dict(vertical_flip=val_vertical_flip,
+                                                         horizontal_flip=val_horizontal_flip, rotate=val_rotate,
+                                                         random_brightness=val_brightness_limit,
+                                                         random_contrast=val_contrast_limit, p_rbc=val_p_rbc)
+                            argparse_train_dict.update(dict_tmp)
+                        train_main(args_train)
+                        # try:
+                        #     train_main(args_train)
+                        # except:
+                        #     print("Something has gone wrong!")

@@ -118,7 +118,7 @@ def train_main(args):
     # directory for the trained model weights
     cfg.work_dir = os.path.join(dir_train_checkpoint,
                                 'lr_' + str(args.learning_rate) + '_warmup_' + str(args.warm_up) +
-                                '_momentum_' + str(args.momentum))
+                                '_momentum_' + str(args.momentum) + '_L2_' + str(args.weight_decay))
 
     # # # NOTE: the usage of 'if args.XYZ is not None:' means that if the parser passes a value of type None,
     # the config file will not be updated inside train_mmdet.py and thus keeps its default config of that feature!
