@@ -97,19 +97,28 @@ def plot_curve(log_dicts, args):
                     tick.tick1line.set_visible(True)
                     tick.label1.set_visible(True)
                 ax.get_xaxis().set_visible(True)
-                ax.tick_params(axis="x", direction="out", length=5, labelcolor="black", width=1)
-                ax.tick_params(axis="y", direction="out", length=5, labelcolor="black", width=1)
-                plt.xlabel('iter', fontsize=16)
-                plt.ylabel('loss', fontsize=16)
+                ax.tick_params(axis="x", direction="out", length=4, labelcolor="black", width=1)
+                ax.tick_params(axis="y", direction="out", length=4, labelcolor="black", width=1)
+                plt.xlabel('Iter', fontsize=15)
+                plt.ylabel('Loss', fontsize=16)
                 plt.xticks(fontsize=14)
                 plt.yticks(fontsize=14)
                 # plt.rc("xtick", labelsize=15)
                 # plt.rc("ytick", labelsize=15)
                 plt.rcParams.update({"font.size": 14})
-                plt.plot(xs, ys, label=legend[i * num_metrics + j], linewidth=2.0)
+                plt.locator_params(axis='y', nbins=5)
+                plt.locator_params(axis='x', nbins=6)
+                legend_p1 = legend[i * num_metrics + j].split('_')[0]
+                legend_p2 = legend[i * num_metrics + j].split('_')[1]
+                plt.plot(xs, ys, label=f"{legend_p1} {legend_p2}", linewidth=2.0)
+                if args.ymax is not None:
+                    ax.set_ylim(bottom=0, ymax=2.2)
+                # ax.set_xlim(xmin=0)
+                if args.xmargin is not None:
+                    ax.margins(x=args.xmargin, y=0.1)
             plt.legend()
         if args.title is not None:
-            plt.title(args.title)
+            plt.title(f"{args.title.split('_')[0]}, {args.title.split('_')[-1]}", fontsize=15)
     if args.out is None:
         plt.show()
     else:
@@ -131,6 +140,18 @@ def add_plot_parser(subparsers):
         type=str,
         default=None,
         help='activates the search for val loss in the JSON log file and the separate plotting'
+    )
+    parser_plt.add_argument(
+        '--xmargin',
+        type=float,
+        default=None,
+        help='custom change of margin of x-axis, element [0, 1]'
+    )
+    parser_plt.add_argument(
+        '--ymax',
+        type=float,
+        default=None,
+        help='custom change of maximum value on y-axis'
     )
     parser_plt.add_argument(
         '--keys',
@@ -193,7 +214,7 @@ def load_json_logs(json_logs, with_val_loss=None):
                     # skip lines without `epoch` field
                     if 'epoch' not in log:
                         continue
-                    if log["mode"] != mode:
+                    if log["mode"] == mode:
                         continue
                     epoch = log.pop('epoch')
                     if epoch not in log_dict:
