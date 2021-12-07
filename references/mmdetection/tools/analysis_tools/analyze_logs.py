@@ -214,7 +214,7 @@ def load_json_logs(json_logs, with_val_loss=None):
                     # skip lines without `epoch` field
                     if 'epoch' not in log:
                         continue
-                    if log["mode"] == mode:
+                    if log["mode"] != mode:
                         continue
                     epoch = log.pop('epoch')
                     if epoch not in log_dict:
