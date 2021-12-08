@@ -112,7 +112,7 @@ def plot_curve(log_dicts, args):
                 legend_p2 = legend[i * num_metrics + j].split('_')[1]
                 plt.plot(xs, ys, label=f"{legend_p1} {legend_p2}", linewidth=2.0)
                 if args.ymax is not None:
-                    ax.set_ylim(bottom=0, ymax=2.2)
+                    ax.set_ylim(bottom=0, ymax=args.ymax)
                 # ax.set_xlim(xmin=0)
                 if args.xmargin is not None:
                     ax.margins(x=args.xmargin, y=0.1)
