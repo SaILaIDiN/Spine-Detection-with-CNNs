@@ -41,7 +41,7 @@ def plot_curve(log_dicts, args):
         for json_log in args.json_logs:
             for metric in args.keys:
                 legend.append(f'{json_log}_{metric}')
-    if args.with_val_loss == "True":
+    if args.mode == "TrainVal":
         assert len(legend) == (len(args.json_logs) * 2 * len(args.keys))
         # because each json file creates two log_dict files one for train one for val
     else:
@@ -52,7 +52,7 @@ def plot_curve(log_dicts, args):
     for i, log_dict in enumerate(log_dicts):
         epochs = list(log_dict.keys())
         for j, metric in enumerate(metrics):
-            if args.with_val_loss:
+            if args.mode == "TrainVal":
                 mode = 'val' if log_dict[1]['mode'][0] == 'val' else 'train'
                 print(f'plot curve of {args.json_logs[min(i, abs(int(i-len(log_dicts)/2)))]}, '
                       f'mode is {mode}, metric is {metric}')
@@ -136,10 +136,10 @@ def add_plot_parser(subparsers):
         nargs='+',
         help='path of train log in json format')
     parser_plt.add_argument(
-        '--with_val_loss',
+        '--mode',
         type=str,
         default=None,
-        help='activates the search for val loss in the JSON log file and the separate plotting'
+        help='choose from ["Train", "Val", "TrainVal"] to search in JSON log file for correct plots'
     )
     parser_plt.add_argument(
         '--xmargin',
@@ -199,13 +199,18 @@ def parse_args():
     return args
 
 
-def load_json_logs(json_logs, with_val_loss=None):
+def load_json_logs(json_logs, mode=None):
     # load and convert json_logs to log_dict, key is epoch, value is a sub dict
     # keys of sub dict is different metrics, e.g. memory, bbox_mAP
     # value of sub dict is a list of corresponding values of all iterations
     log_dicts_collector = []
-    list_of_modes = ["train"] if with_val_loss is None else ["train", "val"]
-    for mode in list_of_modes:
+    if mode == "Train":
+        list_of_modes = ["train"]
+    elif mode == "Val":
+        list_of_modes = ["val"]
+    else:
+        list_of_modes = ["train", "val"]
+    for mode_tmp in list_of_modes:
         log_dicts = [dict() for _ in json_logs]
         for json_log, log_dict in zip(json_logs, log_dicts):
             with open(json_log, 'r') as log_file:
@@ -214,7 +219,8 @@ def load_json_logs(json_logs, with_val_loss=None):
                     # skip lines without `epoch` field
                     if 'epoch' not in log:
                         continue
-                    if log["mode"] != mode:
+                    # skip lines of the wrong mode
+                    if log["mode"] != mode_tmp:
                         continue
                     epoch = log.pop('epoch')
                     if epoch not in log_dict:
@@ -233,8 +239,8 @@ def main():
     for json_log in json_logs:
         assert json_log.endswith('.json')
 
-    if args.with_val_loss == "True":
-        log_dicts = load_json_logs(json_logs, with_val_loss=args.with_val_loss)
+    if args.mode is not None:
+        log_dicts = load_json_logs(json_logs, mode=args.mode)
     else:
         log_dicts = load_json_logs(json_logs)
 
