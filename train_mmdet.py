@@ -13,6 +13,8 @@ from mmdet.apis.train import train_detector
 parser = argparse.ArgumentParser(description='Train a model with given config and checkpoint file',
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
+parser.add_argument('-tr', '--train_csv', default=None, help='annotation file for training data')
+parser.add_argument('-sp', '--special_term', default='', help='name appendix to store in different train folders')
 parser.add_argument('-mt', '--model_type',
                     help='decide which model to use as config and checkpoint file. '
                          'use one of [Cascade_RCNN, GFL, VFNet, Def_DETR]')
@@ -101,7 +103,8 @@ def train_main(args):
 
     # # # Set up config file to manipulate for training
     cfg = config_file
-
+    if args.train_csv is not None:
+        cfg.data.train.ann_file = args.train_csv
     cfg.seed = 0
     set_random_seed(0, deterministic=False)
     cfg.gpu_ids = range(1)
@@ -118,7 +121,8 @@ def train_main(args):
     # directory for the trained model weights
     cfg.work_dir = os.path.join(dir_train_checkpoint,
                                 'lr_' + str(args.learning_rate) + '_warmup_' + str(args.warm_up) +
-                                '_momentum_' + str(args.momentum) + '_L2_' + str(args.weight_decay))
+                                '_momentum_' + str(args.momentum) + '_L2_' + str(args.weight_decay) +
+                                str(args.special_term))
 
     # # # NOTE: the usage of 'if args.XYZ is not None:' means that if the parser passes a value of type None,
     # the config file will not be updated inside train_mmdet.py and thus keeps its default config of that feature!
