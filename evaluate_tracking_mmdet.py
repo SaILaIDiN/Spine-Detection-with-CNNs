@@ -180,9 +180,17 @@ def evaluate_tracking_main(args):
     print("----------------------------------------------------------")
     for j in range(nr_gts):
         centroids1 = calc_centroids_given_tracking(final_gt_paths[j], reg_expr_for_filename=args.input_mode)
-        centroids2 = calc_centroids_given_tracking(os.path.join(detFolder,
-                                                                os.path.join(args.param_config, args.tracking)),
-                                                   det_thresh=args.det_threshold, reg_expr_for_filename=args.input_mode)
+        centroids2 = calc_centroids_given_tracking(
+            os.path.join(detFolder, os.path.join(args.param_config, args.tracking)), det_thresh=args.det_threshold,
+            reg_expr_for_filename=args.input_mode)
+        # print("CENTROIDS1 ", centroids1)
+
+        df_GT = pd.DataFrame(centroids1, columns=centroids1.keys()).T
+        df_GT = df_GT.rename(columns={0: "cX", 1: "cY", 2: "w", 3: "h", 4: "raw_box", 5: "score", 6: "filename",
+                                      7: "z_min", 8: "z_max"})
+        df_PRED = pd.DataFrame(centroids2, columns=centroids2.keys()).T
+        df_PRED = df_PRED.rename(columns={0: "cX", 1: "cY", 2: "w", 3: "h", 4: "raw_box", 5: "score", 6: "filename",
+                                          7: "z_min", 8: "z_max"})
 
         nr_gt = len(centroids1)
         nr_det = len(centroids2)
@@ -193,25 +201,46 @@ def evaluate_tracking_main(args):
 
         # both_spines contains all spines and their IoM, with keys of centroids2
         both_spines = OrderedDict()
-        # boxes1 are GT, boxes2 are like Predictions
-        # -> compare each box2 vs all boxes of boxes1
-        for key in centroids2.keys():
-            # all stacks are combined therefore no comparing to same stack necessary!
-            # VORAUSSETZUNG: NUR EIN SPINE IN DIESER POSITION IN 3D!
-            # Andernfalls muss noch die z-Achse berucksichtigt werden!
-            all_dist = [(key, other_key, calc_metric(centroids2[key], centroids1[other_key], args.metric))
-                        for other_key in centroids1.keys()]
-            all_dist.sort(key=lambda x: x[2], reverse=True)  # sort by metric (here: IoM)
+        for filename, spine_data in df_GT.groupby("filename"):
+            # print("GT_subdata", spine_data)
+            od_GT = spine_data.to_dict(into=OrderedDict, orient='index')
+            od_GT_tmp = OrderedDict()
+            for key in od_GT.keys():
+                tuple_list_sec_val = [tuple_i[1] for tuple_i in list(od_GT[key].items())]
+                od_GT_tmp[key] = tuple(tuple_list_sec_val)
+            # print("OD_GT_TMP", od_GT_tmp)
+            # print("OD_GT_subdata", od_GT)
+            od_GT = od_GT_tmp
 
-            # correct centroid with highest IoM
-            if len(all_dist) == 0:
-                continue
-            best_key, best_other_key, best_metric = all_dist[0]
-            if best_metric >= thresh:
-                # PC: both_spines[prediction_key] = (best_GT_key, their_overlap)
-                both_spines[best_key] = (best_other_key, best_metric)
-                del centroids1[best_other_key]  # to not assign this GT box to another detection box
-                # so it is first-come-first-serve
+            spine_data_PRED = df_PRED[df_PRED["filename"].str.contains(filename.split('/')[-1])]
+            # print("PRED_subdata", spine_data_PRED)
+            od_PRED = spine_data_PRED.to_dict(into=OrderedDict, orient='index')
+            od_PRED_tmp = OrderedDict()
+            for key in od_PRED.keys():
+                tuple_list_sec_val = [tuple_i[1] for tuple_i in list(od_PRED[key].items())]
+                od_PRED_tmp[key] = tuple(tuple_list_sec_val)
+            # print("OD_PRED_subdata", od_PRED)
+            # print("OD_PRED_TMP", od_PRED_tmp)
+            od_PRED = od_PRED_tmp
+
+            # boxes1 are GT, boxes2 are like Predictions
+            # -> compare each box2 vs all boxes of boxes1
+            for key in od_PRED.keys():
+                all_dist = [(key, other_key, calc_metric(od_PRED[key], od_GT[other_key], args.metric))
+                            for other_key in od_GT.keys()]
+                all_dist.sort(key=lambda x: x[2], reverse=True)  # sort by metric (here: IoM)
+
+                # correct centroid with highest IoM
+                if len(all_dist) == 0:
+                    continue
+                best_key, best_other_key, best_metric = all_dist[0]
+                if best_metric >= thresh:
+                    # PC: both_spines[prediction_key] = (best_GT_key, their_overlap)
+                    both_spines[best_key] = (best_other_key, best_metric)
+                    del centroids1[best_other_key]  # to not assign this GT box to another detection box
+                    # so it is first-come-first-serve
+                    del od_GT[best_other_key]  # necessary, because od_GT would otherwise hold an already blocked key
+                    # in all_dist for the remaining keys of od_PRED
 
         if args.show_faults == "True":
             # # Get GT boxes missed by predictions
@@ -342,7 +371,7 @@ def evaluate_tracking_main(args):
     new_df = new_df[['timestamp', 'epoch', 'gt_version', 'detection_threshold', 'fscore', 'precision', 'recall',
                      'nr_detected', 'nr_gt', 'nr_gt_detected']]
 
-    if args.show_faults is not "True":  # deactivate storing the evaluation of tracking when doing error analysis
+    if args.show_faults != "True":  # deactivate storing the evaluation of tracking when doing error analysis
         if args.overwrite:
             new_df.to_csv(filename, index=False)
         else:
@@ -353,3 +382,4 @@ def evaluate_tracking_main(args):
 
 if __name__ == "__main__":
     args = parser.parse_args()
+    evaluate_tracking_main(args)

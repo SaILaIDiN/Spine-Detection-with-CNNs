@@ -331,3 +331,4 @@ def tracking_main(args):
 
 if __name__ == '__main__':
     args = parser.parse_args()
+    tracking_main(args)
