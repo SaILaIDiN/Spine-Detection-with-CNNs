@@ -25,10 +25,18 @@ parser.add_argument('-det', '--detfolder', dest='detFolder', default='',
 parser.add_argument('-ot', '--overlap-threshold', dest='overlap_threshold', type=float, default=0.5, metavar='',
                     help='IoM threshold, defines when a prediction box and a GT box overlap enough to be matched.'
                          'Impacts the number of total overlaps shown in the evaluation print statement.')
-parser.add_argument('-dt', '--detection-threshold', dest='det_threshold', default=0.5, metavar='',
+parser.add_argument('-dt', '--detection-threshold', dest='delta_eval', default=0.5, metavar='',
                     help='Detection threshold for real detection, defines which spines will be tracked.'
+                         'Same parameter as delta in tracking. But this one is to evaluate the tracking files after '
+                         'using a certain delta as if it was a different threshold value.'
+                         'In other words, evaluate the data from delta_track as if it was tracked by delta_eval.')
+parser.add_argument('-t', '--delta', dest='delta_track',  type=float, default=0.5,
+                    help='Threshold for delta (detection threshold, score level).'
+                         'Detection threshold for real detection, defines which spines will be tracked.'
                          'Impacts the number of total tracked spines shown in the evaluation print statement.'
                          'Also impacts the total number of overlaps as a secondary consequence.')
+parser.add_argument('-th', '--theta',
+                    help='Threshold for theta (detection similarity threshold, IOM level)', default=0.5, type=float)
 parser.add_argument('-m', dest='metric', default='iom', metavar='',
                     help='used metric. Options are \'iom\' or \'iou\'')
 parser.add_argument('-tr', '--tracking', default='',
@@ -70,6 +78,7 @@ def calc_centroids_given_tracking(tracking_filename: str, reg_expr_for_filename:
         reg_expr_for_filename (str, optional): regular expression to get only the images you want to evaluate on.
             Defaults to '(.*)SR052N1D1day1(.*)'.
         det_thresh (float, optional): detection confidence threshold. Defaults to 0.5.
+            Same as delta in prediction and tracking.
     Returns:
         OrderedDict: id, rect pairs of centroids
     """
@@ -164,7 +173,7 @@ def evaluate_tracking_main(args):
     # Construct the specific tracking file name if we do automated evaluations (i.e. in auto_eval.py)
     if args.tracking == 'AUTO':
         args.tracking = 'data_tracking_' + args.model_type + '_aug_' + args.use_aug + '_' + args.model_epoch + \
-                        '_' + args.input_mode + '.csv'
+                        '_theta_' + str(args.theta) + '_delta_' + str(args.delta_track) + '_' + args.input_mode + '.csv'
     # Validate savePath
     # Create directory to save results
     savePath = args.savePath
@@ -172,7 +181,7 @@ def evaluate_tracking_main(args):
         savePath = 'results'
     if not os.path.exists(savePath):
         os.makedirs(savePath)
-    real_det_thresh = float(args.det_threshold)
+    real_det_thresh = float(args.delta_eval)
     total_spines = []
     total_both_spines = []
     all_gt_versions = []
@@ -181,7 +190,7 @@ def evaluate_tracking_main(args):
     for j in range(nr_gts):
         centroids1 = calc_centroids_given_tracking(final_gt_paths[j], reg_expr_for_filename=args.input_mode)
         centroids2 = calc_centroids_given_tracking(
-            os.path.join(detFolder, os.path.join(args.param_config, args.tracking)), det_thresh=args.det_threshold,
+            os.path.join(detFolder, os.path.join(args.param_config, args.tracking)), det_thresh=args.delta_eval,
             reg_expr_for_filename=args.input_mode)
         # print("CENTROIDS1 ", centroids1)
 
@@ -338,7 +347,8 @@ def evaluate_tracking_main(args):
         filename = os.path.join(filename, args.param_config)
         Path(filename).mkdir(parents=True, exist_ok=True)
         filename = os.path.join(filename, args.model_type + '_aug_' + args.use_aug +
-                                '_det_threshold_' + str(args.det_threshold) + '_' + args.input_mode + '_eval.csv')
+                                '_theta_' + str(args.theta) + '_delta_track_' + str(args.delta_track) +
+                                '_delta_eval_' + str(args.delta_eval) + '_' + args.input_mode + '_eval.csv')
     elif args.saveName != '':
         filename = os.path.join(savePath, args.saveName + '.csv')
     else:

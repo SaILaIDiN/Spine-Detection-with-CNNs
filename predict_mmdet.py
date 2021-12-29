@@ -24,8 +24,8 @@ parser = argparse.ArgumentParser(description='Make prediction on images')
 parser.add_argument('-m', '--model',
                     help='Model used for prediction (without frozen_inference_graph.pb!) or folder '
                          'where csv files are saved')
-parser.add_argument('-t', '--threshold',
-                    help='Threshold for detection', default=0.5, type=float)
+parser.add_argument('-t', '--delta',
+                    help='Threshold for delta (detection threshold, score level)', default=0.5, type=float)
 parser.add_argument('-th', '--theta',
                     help='Threshold for theta (detection similarity threshold)', default=0.5, type=float)
 parser.add_argument('-C', '--use_csv', action='store_true',
@@ -292,7 +292,7 @@ def load_model(model_type, use_aug, model_epoch, param_config):
 
 
 # save_csv flag only False if used in tracking.py!
-def predict_images(model, image_path, output_path, output_csv_path, threshold=0.3, theta=0.5, save_csv=True,
+def predict_images(model, image_path, output_path, output_csv_path, delta=0.3, theta=0.5, save_csv=True,
                    return_csv=False, input_mode="Test"):
     """ Predict detection on image
     Args:
@@ -300,7 +300,8 @@ def predict_images(model, image_path, output_path, output_csv_path, threshold=0.
         image_path (str): path to image
         output_path (str): output folder to write detected images to
         output_csv_path (str): output folder to write csv of detections to
-        threshold (float, optional): detection threshold. Defaults to 0.3.
+        delta (float, optional): detection threshold. Defaults to 0.3.
+        theta (float, optional): detection similarity threshold. Defaults to 0.5.
         save_csv (bool, optional): whether csv files of detection should be saved. Defaults to True.
         return_csv (bool, optional): whether tuple of all results should be returned at the end.
         input_mode (str, optional): differentiates between two ways of loading input image data/paths
@@ -338,7 +339,7 @@ def predict_images(model, image_path, output_path, output_csv_path, threshold=0.
         pred_scores = np.asarray([p[4] for p in pred_array])
 
         # find out where scores are greater than at threshold and change everything according to that
-        thresh_indices = np.where(pred_scores >= threshold)[0]
+        thresh_indices = np.where(pred_scores >= delta)[0]
         pred_boxes = pred_boxes[thresh_indices]
         pred_scores = pred_scores[thresh_indices]
         pred_labels = pred_labels[thresh_indices]
@@ -349,9 +350,9 @@ def predict_images(model, image_path, output_path, output_csv_path, threshold=0.
             pred_output = np.concatenate((pred_boxes, np.array([pred_scores]).T), axis=1)
             pred_output = [pred_output]  # turn np.array to list[np.array]
 
-        print("Predboxes (detached): ", pred_boxes)
-        print("Predscores (detached): ", pred_scores)
-        print("Pred_Output: ", pred_output)
+        # print("Predboxes (detached): ", pred_boxes)
+        # print("Predscores (detached): ", pred_scores)
+        # print("Pred_Output: ", pred_output)
 
         if return_csv:
             all_boxes.append(pred_boxes)
@@ -422,7 +423,7 @@ if __name__ == '__main__':
     nr_imgs = len(list(glob.glob(args.input)))
     print("[INFO] Starting predictions ...")
     if not args.use_csv:
-        predict_images(model, args.input, output_path, csv_path, args.threshold, args.theta)
+        predict_images(model, args.input, output_path, csv_path, args.delta, args.theta)
     else:
         changed_df = False
         for img in glob.glob(args.input):
@@ -436,7 +437,7 @@ if __name__ == '__main__':
                 folder = img.replace(img.split('/')[-1], '')
                 df['filename'] = folder + df['filename']
                 changed_df = True
-            img_df = df[df.filename == img & df.score >= args.threshold]
+            img_df = df[df.filename == img & df.score >= args.delta]
 
             # Read boxes, classes and scores
             rects, classes = df_to_data(img_df)

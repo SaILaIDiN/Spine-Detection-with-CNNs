@@ -19,16 +19,16 @@ parser.add_argument('-T', '--tif', required=False,
                     help='Path to input tif stack, if this and image-flag are set, images are priorized')
 parser.add_argument('-i', '--images', required=False,
                     help='Path to input images')
-parser.add_argument('-t', '--threshold',
-                    help='Threshold for detection', default=0.5, type=float)
+parser.add_argument('-t', '--delta',
+                    help='Threshold for delta (detection threshold, score level)', default=0.5, type=float)
+parser.add_argument('-th', '--theta',
+                    help='Threshold for theta (detection similarity threshold, IOM level)', default=0.5, type=float)
+parser.add_argument('-ta', '--tau',
+                    help='Threshold for tau (tracking threshold)', default=0.3, type=float)
 parser.add_argument('-a', '--appeared',
                     help='appeared counter', default=0, type=int)
 parser.add_argument('-d', '--disappeared',
                     help='disappeared counter', default=0, type=int)
-parser.add_argument('-th', '--theta',
-                    help='Threshold for theta (detection similarity threshold)', default=0.5, type=float)
-parser.add_argument('-ta', '--tau',
-                    help='Threshold for tau (tracking threshold)', default=0.3, type=float)
 parser.add_argument('-m', '--model',
                     help='Path to model you want to analyze with')
 parser.add_argument('-c', '--csv', required=False,
@@ -124,7 +124,7 @@ def tracking_main(args):
     # iom thresh -> min iom that two boxes are considered the same in the same frame!
     MAX_DIFF = args.tau
     IOM_THRESH = args.theta
-    THRESH = args.threshold  # This threshold parameter is the same one used in predict.py's predict_images()
+    THRESH = args.delta  # This threshold parameter is the same one used in predict.py's predict_images()
     MIN_APP = args.appeared
     MAX_DIS = args.disappeared
     METRIC = args.metric
@@ -145,7 +145,8 @@ def tracking_main(args):
     csv_output_path = os.path.join(args.output, args.param_config)
     Path(csv_output_path).mkdir(parents=True, exist_ok=True)
     csv_output_path = os.path.join(csv_output_path, args.file_save + '_' + args.model_type + '_aug_' + args.use_aug
-                                   + '_' + args.model_epoch + '_' + args.input_mode + '.csv')
+                                   + '_' + args.model_epoch + '_theta_' + str(args.theta) + '_delta_' + str(args.delta)
+                                   + '_' + args.input_mode + '.csv')
     if args.save_images and not os.path.exists(img_output_path):
         os.makedirs(img_output_path)
 
@@ -180,7 +181,7 @@ def tracking_main(args):
         # We currently disable storing prediction images for tracking. Replace None by img_output_path to activate
         # Other way of disabling is complicated in here and coupled to args.save_images which is always False here?!
         all_boxes, all_scores, all_classes, all_num_detections = predict_mmdet.predict_images(
-            model, args.images, None, csv_output_path, threshold=THRESH, save_csv=False, return_csv=True,
+            model, args.images, None, csv_output_path, theta=IOM_THRESH, delta=THRESH, save_csv=False, return_csv=True,
             input_mode=args.input_mode)
 
     all_csv_paths = list(Path().rglob(args.csv))
@@ -246,10 +247,10 @@ def tracking_main(args):
 
         # look if there are some boxes
         if len(boxes) == 0:
-            print("NO BOXES!")
+            # print("NO BOXES!")
             continue
-        else:
-            print("BOXES!")
+        # else:
+        #     print("BOXES!")
 
         # print("BOXES: ", boxes, type(boxes), type(boxes[0]))
         # print("SCORES: ", scores, type(scores))
