@@ -179,7 +179,7 @@ def train_main(args):
     mmcv.mkdir_or_exist(osp.abspath(cfg.work_dir))
     # Train the detector
     train_detector(model, datasets, cfg, distributed=False, validate=True)
-    return
+    return cfg.work_dir
 
 
 if __name__ == "__main__":

@@ -1,5 +1,11 @@
+import os
+import numpy as np
+import shutil
+import re
+import pandas as pd
 from train_mmdet import train_main
 from train_mmdet import parser as parser_train
+from references.mmdetection.tools.analysis_tools.analyze_logs import plot_curve, parse_args, load_json_logs, main
 
 
 def get_training_dict(train_csv, special_term, model_type, use_aug, lr,
@@ -15,7 +21,7 @@ def get_training_dict(train_csv, special_term, model_type, use_aug, lr,
                 'momentum': momentum,
                 'weight_decay': weight_decay,
                 'dropout': dropout,
-                # all data augmentation functions need to be reset or they will pass into the next configuration!
+                # all data augmentation functions need to be reset, or they will pass into the next configuration!
                 'random_brightness': None,
                 'random_contrast': None,
                 'p_rbc': None,
@@ -38,12 +44,48 @@ def get_data_aug_dict(random_brightness=None, random_contrast=None, p_rbc=None,
     return dict_tmp
 
 
+def auto_loss_plotting(test_path, legend, model_type, mode, num_train_size):
+    """ """
+    args_plot = parse_args()
+    argparse_plot_dict = vars(args_plot)
+    dict_tmp = {'task': 'plot_curve',
+                'json_logs': [f'{test_path}/None.log.json'],
+                'keys': ['loss'],
+                'legend': legend,
+                'out': f'{test_path}/{model_type}_{mode}.png',
+                'title': f'{model_type}_{mode}',
+                'xmargin': 0.1 if mode == 'Train' else 0.15,
+                'mode': mode,
+                'backend': None,
+                'ymax': None,
+                'style': 'white',
+                'num_iters_per_epoch': num_train_size}
+    argparse_plot_dict.update(dict_tmp)
+    main(args_plot)
+    return
+
+
+def length_of_train_set(dir_train_csv):
+    """ """
+    df_train = pd.read_csv(dir_train_csv)
+    img_list = list(sorted(df_train["filename"].values.tolist()))
+    re_pattern = re.compile(r'(.*)day(\d{1,2})stack(\d{1,2})-(\d{2})')  # get filenames only up to the stack number
+    all_matches = []
+    for img in img_list:
+        matches = re_pattern.finditer(img)
+        for match in matches:
+            all_matches.append(match.group(0))
+    img_list_unique = np.unique(all_matches)
+    return len(img_list_unique)
+
+
 args_train = parser_train.parse_args()
 argparse_train_dict = vars(args_train)
 
 # # # Hardcoded values for basic training setup
 list_train_csv = [f"data/default_annotations/train_subsets/train_sub_{i+1}.csv" for i in range(0, 11)]
 list_special_term = [f"_sub_{i+1}" for i in range(0, 11)]
+test_content = "00_Test_Subsets"
 # list_train_csv = [None]
 # list_special_term = ['']
 list_model_type = ["Cascade-RCNN"]
@@ -85,8 +127,20 @@ for train_csv, special_term in zip(list_train_csv, list_special_term):
                                                              random_brightness=val_brightness_limit,
                                                              random_contrast=val_contrast_limit, p_rbc=val_p_rbc)
                                 argparse_train_dict.update(dict_tmp)
-                            train_main(args_train)
-                            # try:
-                            #     train_main(args_train)
-                            # except:
-                            #     print("Something has gone wrong!")
+                            train_work_dir = train_main(args_train)
+                            test_path = f"{model_type}_Plot_Analysis/{test_content}/{train_work_dir.split('/')[-1]}"
+                            from_path = train_work_dir + "/None.log.json"
+                            to_path = "references/mmdetection/tools/analysis_tools/" + test_path
+                            try:
+                                os.makedirs(from_path)
+                            except OSError as error:
+                                print(f"File path {from_path} already exists!")
+                            try:
+                                os.makedirs(to_path)
+                            except OSError as error:
+                                print(f"File path {to_path} already exists!")
+                            shutil.copy(from_path, to_path)
+                            auto_loss_plotting(to_path, ['legend_train'], model_type, "Train",
+                                               length_of_train_set(train_csv))
+                            auto_loss_plotting(to_path, ['legend_val'], model_type, "Val",
+                                               length_of_train_set(train_csv))

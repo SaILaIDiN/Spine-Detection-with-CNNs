@@ -58,6 +58,11 @@ def plot_curve(log_dicts, args):
                       f'mode is {mode}, metric is {metric}')
             else:
                 print(f'plot curve of {args.json_logs[i]}, metric is {metric}')
+            try:
+                tmp = log_dict[epochs[0]]
+            except:
+                print("Sample size higher than train set size! So no train values stored.")
+                continue
             if metric not in log_dict[epochs[0]]:
                 raise KeyError(
                     f'{args.json_logs[i]} does not contain metric {metric}')
@@ -76,7 +81,10 @@ def plot_curve(log_dicts, args):
                 xs = []
                 ys = []
                 # num_iters_per_epoch = log_dict[epochs[0]]['iter'][-2]
-                num_iters_per_epoch = 844
+                if args.num_iters_per_epoch is None:
+                    num_iters_per_epoch = 844
+                else:
+                    num_iters_per_epoch = args.num_iters_per_epoch
                 for epoch in epochs:
                     iters = log_dict[epoch]['iter']
                     # if log_dict[epoch]['mode'][-1] == 'val':
@@ -135,6 +143,12 @@ def add_plot_parser(subparsers):
         type=str,
         nargs='+',
         help='path of train log in json format')
+    parser_plt.add_argument(
+        '--num_iters_per_epoch',
+        type=int,
+        default=None,
+        help='number of images per epoch aka size of current train set, for x axis of plots'
+    )
     parser_plt.add_argument(
         '--mode',
         type=str,
@@ -232,8 +246,7 @@ def load_json_logs(json_logs, mode=None):
     return log_dicts_collector
 
 
-def main():
-    args = parse_args()
+def main(args):
 
     json_logs = args.json_logs
     for json_log in json_logs:
@@ -248,4 +261,5 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    args = parse_args()
+    main(args)
