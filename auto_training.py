@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import random
 import shutil
 import re
 import pandas as pd
@@ -8,12 +9,14 @@ from train_mmdet import parser as parser_train
 from references.mmdetection.tools.analysis_tools.analyze_logs import plot_curve, parse_args, load_json_logs, main
 
 
-def get_training_dict(train_csv, special_term, model_type, use_aug, lr,
+def get_training_dict(train_csv, special_term, model_type, use_aug, seed_data, seed_weights, lr,
                       max_epochs=None, warm_up=None, steps_decay=None, momentum=None, weight_decay=None, dropout=None):
     dict_tmp = {'train_csv': train_csv,
                 'special_term': special_term,
                 'model_type': model_type,
                 'use_aug': use_aug,
+                'seed_data': seed_data,
+                'seed_weights': seed_weights,
                 'learning_rate': lr,
                 'max_epochs': max_epochs,
                 'warm_up': warm_up,
@@ -83,16 +86,27 @@ args_train = parser_train.parse_args()
 argparse_train_dict = vars(args_train)
 
 # # # Hardcoded values for basic training setup
-list_train_csv = [f"data/default_annotations/train_subsets/train_sub_{i+1}.csv" for i in range(0, 11)]
-list_special_term = [f"_sub_{i+1}" for i in range(0, 11)]
-test_content = "00_Test_Subsets"
+delete_weights = True  # deletes the epoch.pth files after the current run is done and the log.json is secured
+
+# # For Train Subset Analysis
+# list_train_csv = [f"data/default_annotations/train_subsets/train_sub_{i+1}.csv" for i in range(0, 11)]
+# list_special_term = [f"_sub_{i+1}" for i in range(0, 11)]
+# test_content = "00_Test_Subsets"
+
+# # For Data Augmentation Analysis
+list_train_csv = [f"data/default_annotations/train.csv" for i in range(0, 5)]
+list_special_term = [f"_run_{i+1}" for i in range(0, 5)]
+list_seed_data = random.sample(range(100), 5)  # seed creation without duplicates for data sampling
+list_seed_weights = random.sample(range(100), 5)  # seed creation without duplicates for weights
+test_content = "01_Test_DA/no_DA"
+
 # list_train_csv = [None]
 # list_special_term = ['']
 list_model_type = ["Cascade-RCNN"]
 list_use_aug = ["False"]
-val_max_epochs = 2
+val_max_epochs = 1
 # list_learning_rate = [0.001, 0.0005, 0.0001, 0.00005, 0.00001, 0.000005, 0.000001]
-list_learning_rate = [0.001]
+list_learning_rate = [0.001, 0.0001]
 list_weight_decay = [0.0003]
 list_warm_up = [None]  # can use 'constant', 'linear', 'exp' or None
 # val_steps_decay = [5, 7]  # format [step_1, step_2, ..]
@@ -109,14 +123,16 @@ val_contrast_limit = None  # [0.1, 0.3]
 val_p_rbc = None  # 0.2
 
 # # # NOTE: build your training loops exactly for a specific training pattern
-for train_csv, special_term in zip(list_train_csv, list_special_term):
+for train_csv, special_term, seed_data, seed_weights in zip(list_train_csv, list_special_term,
+                                                            list_seed_data, list_seed_weights):
     for model_type in list_model_type:
         for use_aug in list_use_aug:
             for lr in list_learning_rate:
                 for warm_up in list_warm_up:
                     for momentum in list_momentum:
                         for weight_decay in list_weight_decay:
-                            dict_tmp = get_training_dict(train_csv, special_term, model_type, use_aug, lr,
+                            dict_tmp = get_training_dict(train_csv, special_term, model_type, use_aug,
+                                                         seed_data, seed_weights, lr,
                                                          val_max_epochs, warm_up, val_steps_decay,
                                                          dropout=val_dropout, momentum=momentum,
                                                          weight_decay=weight_decay)
@@ -140,7 +156,11 @@ for train_csv, special_term in zip(list_train_csv, list_special_term):
                             except OSError as error:
                                 print(f"File path {to_path} already exists!")
                             shutil.copy(from_path, to_path)
-                            auto_loss_plotting(to_path, ['legend_train'], model_type, "Train",
-                                               length_of_train_set(train_csv))
-                            auto_loss_plotting(to_path, ['legend_val'], model_type, "Val",
-                                               length_of_train_set(train_csv))
+                            if delete_weights:
+                                for i in range(1, val_max_epochs+1):
+                                    if os.path.isfile(train_work_dir + f"/epoch_{i}.pth"):
+                                        os.remove(train_work_dir + f"/epoch_{i}.pth")
+                            # auto_loss_plotting(to_path, ['legend_train'], model_type, "Train",
+                            #                    length_of_train_set(train_csv))
+                            # auto_loss_plotting(to_path, ['legend_val'], model_type, "Val",
+                            #                    length_of_train_set(train_csv))

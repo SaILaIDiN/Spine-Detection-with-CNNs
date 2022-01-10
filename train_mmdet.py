@@ -20,6 +20,8 @@ parser.add_argument('-mt', '--model_type',
                          'use one of [Cascade_RCNN, GFL, VFNet, Def_DETR]')
 parser.add_argument('-ua', '--use_aug', default='False',
                     help='decide to load the config file with or without data augmentation')
+parser.add_argument('-sd', '--seed_data', default=0, help='seed for the data loader, random if None')
+parser.add_argument('-sw', '--seed_weights', default=0, help='seed for initial random weights')
 # The following arguments are primary parameters for optimization
 # if there is no default defined, this parameter will take up the predefined value in the config file
 parser.add_argument('-lr', '--learning_rate', default=0.0005)
@@ -105,8 +107,9 @@ def train_main(args):
     cfg = config_file
     if args.train_csv is not None:
         cfg.data.train.ann_file = args.train_csv
-    cfg.seed = 0
-    set_random_seed(0, deterministic=False)
+    cfg.seed = args.seed_data
+    if args.seed_weights is not None:
+        set_random_seed(args.seed_weights, deterministic=False)
     cfg.gpu_ids = range(1)
 
     # # # NOTE: either use 'cfg.resume_from' or 'cfg.load_from'
