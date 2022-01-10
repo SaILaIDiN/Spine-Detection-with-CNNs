@@ -5,6 +5,7 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
+import pandas as pd
 
 
 def cal_train_time(log_dicts, args):
@@ -30,7 +31,7 @@ def cal_train_time(log_dicts, args):
         print()
 
 
-def plot_curve(log_dicts, args):
+def plot_curve(log_dicts, args, std_dicts=None):
     if args.backend is not None:
         plt.switch_backend(args.backend)
     sns.set_style(args.style)
@@ -80,6 +81,8 @@ def plot_curve(log_dicts, args):
             else:
                 xs = []
                 ys = []
+                if std_dicts is not None:
+                    stds = []
                 # num_iters_per_epoch = log_dict[epochs[0]]['iter'][-2]
                 if args.num_iters_per_epoch is None:
                     num_iters_per_epoch = 844
@@ -95,8 +98,12 @@ def plot_curve(log_dicts, args):
                     xs.append(
                         np.array(iters) + (epoch - 1) * num_iters_per_epoch)
                     ys.append(np.array(log_dict[epoch][metric][:len(iters)]))
+                    if std_dicts is not None:
+                        stds.append(np.array(std_dicts[i][epoch][metric][:len(iters)]))
                 xs = np.concatenate(xs)
                 ys = np.concatenate(ys)
+                if std_dicts is not None:
+                    stds = np.concatenate(stds)
                 ax = plt.gca()
                 for tick in ax.xaxis.get_major_ticks():
                     tick.tick1line.set_visible(True)
@@ -119,8 +126,13 @@ def plot_curve(log_dicts, args):
                 legend_p1 = legend[i * num_metrics + j].split('_')[0]
                 legend_p2 = legend[i * num_metrics + j].split('_')[1]
                 plt.plot(xs, ys, label=f"{legend_p1} {legend_p2}", linewidth=2.0)
-                if args.ymax is not None:
-                    ax.set_ylim(bottom=0, ymax=args.ymax)
+                if std_dicts is not None:
+                    plt.fill_between(xs, ys-stds, ys+stds, alpha=0.3)
+                if args.yrange is not None:
+                    if isinstance(args.yrange, list):
+                        ax.set_ylim(bottom=args.yrange[0], ymax=args.yrange[1])
+                    else:
+                        ax.set_ylim(bottom=0, ymax=args.yrange)
                 # ax.set_xlim(xmin=0)
                 if args.xmargin is not None:
                     ax.margins(x=args.xmargin, y=0.1)
@@ -142,7 +154,14 @@ def add_plot_parser(subparsers):
         'json_logs',
         type=str,
         nargs='+',
-        help='path of train log in json format')
+        help='path of train log in json format. log should contain mean loss values if std_jsons is not None')
+    parser_plt.add_argument(
+        'std_jsons',
+        type=str,
+        nargs='+',
+        help='path of std logs in json format',
+        default=None
+    )
     parser_plt.add_argument(
         '--num_iters_per_epoch',
         type=int,
@@ -162,7 +181,7 @@ def add_plot_parser(subparsers):
         help='custom change of margin of x-axis, element [0, 1]'
     )
     parser_plt.add_argument(
-        '--ymax',
+        '--yrange',
         type=float,
         default=None,
         help='custom change of maximum value on y-axis'
@@ -214,6 +233,9 @@ def parse_args():
 
 
 def load_json_logs(json_logs, mode=None):
+    """ Extracts mode-relevant entries from the json file into list of dictionaries of defaultdicts.
+        Preceding preparation of json files for plot_curve().
+    """
     # load and convert json_logs to log_dict, key is epoch, value is a sub dict
     # keys of sub dict is different metrics, e.g. memory, bbox_mAP
     # value of sub dict is a list of corresponding values of all iterations
@@ -246,6 +268,70 @@ def load_json_logs(json_logs, mode=None):
     return log_dicts_collector
 
 
+def load_json_logs_create_avg(json_logs, mode=None, special_term=None):
+    """ Similar way to read and manipulate json file entries such as load_json_logs().
+        This function filters non-relevant rows of the json file and computes mean and standard deviation
+        over the loss values of the chosen mode. The dataframe for mean and std is then stored in separate json files.
+        These json files can than be use in plot_curve() if std_dicts is not None.
+        This way the standard deviation is plotted alongside the mean of each loss entry.
+        By computing and storing the mean and std values in separate json files, the process from load_json_logs()
+        and plot_curve() remains untouched, and it is easier to switch stds on and off.
+        Also, the possibility to plot multiple graphs into one figure is preserved, with no adjustments.
+        NOTE: this functionality is not provided for the metric 'mAP' only for 'loss'.
+
+        Dataframes for mean and std are returned for checking.
+    """
+    if mode == "Train":
+        list_of_modes = ["train"]
+    elif mode == "Val":
+        list_of_modes = ["val"]
+    else:
+        list_of_modes = ["train", "val"]
+    for mode_tmp in list_of_modes:
+        log_dicts = [dict() for _ in json_logs]
+        df_averaging_collector = []
+        for json_log, log_dict in zip(json_logs, log_dicts):
+            with open(json_log, 'r') as log_file:
+                log_dicts_tmp = []
+                for line in log_file:
+                    log = json.loads(line.strip())
+                    # skip lines without `epoch` field
+                    if 'epoch' not in log:
+                        continue
+                    # skip lines with 'mAP' field (val set)
+                    if 'mAP' in log:
+                        continue
+                    # skip lines of the wrong mode
+                    if log["mode"] != mode_tmp:
+                        continue
+                    log_dicts_tmp.append(log)  # list holds individual dicts from json file
+                df_tmp = pd.DataFrame(log_dicts_tmp)  # makes this list into a dataframe
+                # print(df_tmp)
+                df_tmp = df_tmp[["mode", "epoch", "iter", "loss"]]
+                # print(df_tmp)
+                df_averaging_collector.append(df_tmp)  # collects the dataframe from every new run
+            # print("LEN", len(df_averaging_collector))
+            # # Averaging process
+            df_mean = (pd.concat(df_averaging_collector)
+                         .groupby(['mode', 'epoch', 'iter'])
+                         .agg(loss=('loss', 'mean')))
+            df_std = (pd.concat(df_averaging_collector)
+                        .groupby(['mode', 'epoch', 'iter'])
+                        .agg(loss=('loss', 'std')))
+            list_dict_mean = df_mean.reset_index().to_dict('records')
+            list_dict_std = df_std.reset_index().to_dict('records')
+            with open(f'None_Mean{special_term}.log.json', 'w') as fout:
+                for dict_mean in list_dict_mean:
+                    json.dump(dict_mean, fout)
+                    fout.write('\n')
+            with open(f'None_Std{special_term}.log.json', 'w') as fout:
+                for dict_std in list_dict_std:
+                    json.dump(dict_std, fout)
+                    fout.write('\n')
+
+    return df_mean, df_std
+
+
 def main(args):
 
     json_logs = args.json_logs
@@ -253,11 +339,21 @@ def main(args):
         assert json_log.endswith('.json')
 
     if args.mode is not None:
-        log_dicts = load_json_logs(json_logs, mode=args.mode)
+        if args.std_jsons is not None:
+            std_json_logs = args.std_jsons
+            assert len(json_logs) == len(std_json_logs)
+            for std_json_log in std_json_logs:
+                assert std_json_log.endswith('.json')
+            log_dicts = load_json_logs(json_logs, mode=args.mode)
+            std_dicts = load_json_logs(args.std_jsons, mode=args.mode)
+        else:
+            log_dicts = load_json_logs(json_logs, mode=args.mode)
+            std_dicts = None
     else:
         log_dicts = load_json_logs(json_logs)
+        std_dicts = None
 
-    eval(args.task)(log_dicts, args)
+    eval(args.task)(log_dicts, args, std_dicts)
 
 
 if __name__ == '__main__':
