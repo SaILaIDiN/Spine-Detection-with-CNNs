@@ -139,6 +139,7 @@ def plot_curve(log_dicts, args, std_dicts=None):
             plt.legend()
         if args.title is not None:
             plt.title(f"{args.title.split('_')[0]}, {args.title.split('_')[-1]}", fontsize=15)
+        plt.tight_layout()
     if args.out is None:
         plt.show()
     else:
@@ -234,7 +235,7 @@ def parse_args():
 
 def load_json_logs(json_logs, mode=None):
     """ Extracts mode-relevant entries from the json file into list of dictionaries of defaultdicts.
-        Preceding preparation of json files for plot_curve().
+        Preceeding preparation of json files for plot_curve().
     """
     # load and convert json_logs to log_dict, key is epoch, value is a sub dict
     # keys of sub dict is different metrics, e.g. memory, bbox_mAP
@@ -272,7 +273,7 @@ def load_json_logs_create_avg(json_logs, mode=None, special_term=None):
     """ Similar way to read and manipulate json file entries such as load_json_logs().
         This function filters non-relevant rows of the json file and computes mean and standard deviation
         over the loss values of the chosen mode. The dataframe for mean and std is then stored in separate json files.
-        These json files can than be use in plot_curve() if std_dicts is not None.
+        These json files can than be used in plot_curve() if std_dicts is not None.
         This way the standard deviation is plotted alongside the mean of each loss entry.
         By computing and storing the mean and std values in separate json files, the process from load_json_logs()
         and plot_curve() remains untouched, and it is easier to switch stds on and off.
