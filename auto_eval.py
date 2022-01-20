@@ -52,61 +52,66 @@ def get_eval_tracking_dict(model_type, use_aug, epoch, param_config, theta, delt
     return dict_tmp
 
 
-args_tracking = parser_tracking.parse_args()
-argparse_tracking_dict = vars(args_tracking)
+if __name__ == '__main__':
+    args_tracking = parser_tracking.parse_args()
+    argparse_tracking_dict = vars(args_tracking)
 
-list_model_type = ["Cascade-RCNN"]
-list_use_aug = ["False"]
-list_epochs = ["epoch_" + str(x) for x in range(16, 17)]
-use_offsets = "True"
-input_mode = "Test"  # "Train", "Val", "Test"
-show_faults = "False"
-# Hardcoded values for parameter configuration string 'param_config'
-list_learning_rate = ['0.005']
-list_weight_decay = ['0.0003']
-# list_learning_rate = ['0.001', '0.0001', '1e-05', '1e-06', '1e-07']  # has to be of type str because mmdetection
-# translates long float numbers into 'Xe-0Y' format when config file is loaded, starts at '1e-05'
-list_warm_up = [None]
-list_momentum = ['0.9']
-list_sim_threshold_track = [0.2, 0.5]
-list_det_threshold_track = [0.3, 0.6]
-list_det_threshold_eval = [0.55, 0.65]  # values only make sense, when delta_eval >= delta_track
-#list_learning_rate = ['0.01', '0.001']
-#list_learning_rate = ['5e-05', '7.5e-05']
-#list_learning_rate = ['0.001', '0.0001', '1e-05', '1e-06', '1e-07']  # has to be of type str because mmdetection
-# translates long float numbers into 'Xe-0Y' format when config file is loaded, starts at '1e-05'
+    list_model_type = ["Cascade-RCNN"]
+    list_use_aug = ["True"]
+    list_special_term = [""]
+    list_epochs = ["epoch_" + str(x) for x in range(16, 17)]
+    use_offsets = "True"
+    input_mode = "Test"  # "Train", "Val", "Test"
+    show_faults = "False"
+    # Hardcoded values for parameter configuration string 'param_config'
+    list_learning_rate = ['0.001, 0.0001']
+    list_weight_decay = ['0.0003']
+    # list_learning_rate = ['0.001', '0.0001', '1e-05', '1e-06', '1e-07']  # has to be of type str because mmdetection
+    # translates long float numbers into 'Xe-0Y' format when config file is loaded, starts at '1e-05'
+    list_warm_up = [None]
+    list_momentum = ['0.9']
+    list_sim_threshold_track = [0.2, 0.5]
+    list_det_threshold_track = [0.3, 0.6]
+    list_det_threshold_eval = [0.55, 0.65]  # values only make sense, when delta_eval >= delta_track
+    # NOTE: if tracking file does not hold any more entries due to high det_threshold_track or the det_threshold_eval
+    # is filtering out all tracked entries, evaluate_tracking_mmdet.py's evaluate_tracking_main() will throw KeyError
 
+    # list_learning_rate = ['0.001', '0.0001', '1e-05', '1e-06', '1e-07']  # has to be of type str because mmdetection
+    # translates long float numbers into 'Xe-0Y' format when config file is loaded, starts at '1e-05'
 
-args_eval_tracking = parser_eval_tracking.parse_args()
-argparse_eval_tracking_dict = vars(args_eval_tracking)
+    args_eval_tracking = parser_eval_tracking.parse_args()
+    argparse_eval_tracking_dict = vars(args_eval_tracking)
 
-for model_type in list_model_type:
-    for use_aug in list_use_aug:
-        # build up the relevant loops for the 'param_config' string before you proceed with epochs
-        for lr in list_learning_rate:
-            for warm_up in list_warm_up:
-                for momentum in list_momentum:
-                    for weight_decay in list_weight_decay:
-                        param_config = 'lr_' + lr + '_warmup_' + str(warm_up) + '_momentum_' + momentum + \
-                                       '_L2_' + weight_decay
-                        for epoch in list_epochs:
-                            for theta in list_sim_threshold_track:
-                                for delta in list_det_threshold_track:
-                                    dict_tmp = get_tracking_dict(model_type, use_aug, epoch, use_offsets, theta, delta,
-                                                                 param_config, input_mode)
-                                    argparse_tracking_dict.update(dict_tmp)
-                                    tracking_main(args_tracking)
-                                    # try:
-                                    #     tracking_main(args_tracking)
-                                    # except:
-                                    #     print("Some file or path is not existent!")
-                                    for det_threshold in list_det_threshold_eval:
-                                        dict_tmp = get_eval_tracking_dict(model_type, use_aug, epoch, param_config,
-                                                                          theta, delta, det_threshold, input_mode,
-                                                                          show_faults)
-                                        argparse_eval_tracking_dict.update(dict_tmp)
-                                        evaluate_tracking_main(args_eval_tracking)
-                                        # try:
-                                        #     evaluate_tracking_main(args_eval_tracking)
-                                        # except:
-                                        #     print("Some file or path is not existent!")
+    for model_type in list_model_type:
+        for use_aug in list_use_aug:
+            # build up the relevant loops for the 'param_config' string before you proceed with epochs
+            for lr in list_learning_rate:
+                for warm_up in list_warm_up:
+                    for momentum in list_momentum:
+                        for weight_decay in list_weight_decay:
+                            for special_term in list_special_term:
+                                param_config = 'lr_' + lr + '_warmup_' + str(warm_up) + '_momentum_' + momentum + \
+                                               '_L2_' + weight_decay + special_term
+                                for epoch in list_epochs:
+                                    for theta in list_sim_threshold_track:
+                                        for delta in list_det_threshold_track:
+                                            dict_tmp = get_tracking_dict(model_type, use_aug, epoch, use_offsets, theta,
+                                                                         delta, param_config, input_mode)
+                                            argparse_tracking_dict.update(dict_tmp)
+                                            tracking_main(args_tracking)
+                                            # try:
+                                            #     tracking_main(args_tracking)
+                                            # except:
+                                            #     print("Some file or path is not existent!")
+                                            for det_threshold in list_det_threshold_eval:
+                                                dict_tmp = get_eval_tracking_dict(model_type, use_aug, epoch,
+                                                                                  param_config, theta, delta,
+                                                                                  det_threshold, input_mode,
+                                                                                  show_faults)
+                                                argparse_eval_tracking_dict.update(dict_tmp)
+                                                # evaluate_tracking_main(args_eval_tracking)
+                                                # # Uncomment after debugging
+                                                try:
+                                                    evaluate_tracking_main(args_eval_tracking)
+                                                except:
+                                                    print("Some file or path is not existent!")
