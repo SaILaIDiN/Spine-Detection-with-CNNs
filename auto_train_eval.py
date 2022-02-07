@@ -34,6 +34,8 @@ list_train_csv = [f"data/default_annotations/train.csv" for i in range(0, 5)]
 list_special_term = [f"_run_{i+1}" for i in range(0, 5)]
 list_seed_data = random.sample(range(100), 5)  # seed creation without duplicates for data sampling
 list_seed_weights = random.sample(range(100), 5)  # seed creation without duplicates for weights
+# list_seed_data = [0]
+# list_seed_weights = [0]
 test_content = "01_Test_DA/no_DA"
 
 list_model_type = ["Cascade-RCNN"]
@@ -60,9 +62,9 @@ list_epochs = ["epoch_" + str(x) for x in range(16, 17)]  # range has to be with
 use_offsets = "True"
 input_mode = "Test"  # "Train", "Val", "Test"
 show_faults = "False"
-list_sim_threshold_track = [0.2, 0.5]
-list_det_threshold_track = [0.3, 0.6]
-list_det_threshold_eval = [0.55, 0.65]  # values only make sense, when delta_eval >= delta_track
+list_sim_threshold_track = [0.5]
+list_det_threshold_track = [0.2]
+list_det_threshold_eval = [0.2, 0.4, 0.6]  # values only make sense, when delta_eval >= delta_track
 # NOTE: if tracking file does not hold any more entries due to high det_threshold_track or the det_threshold_eval
 # is filtering out all tracked entries, evaluate_tracking_mmdet.py's evaluate_tracking_main() will throw KeyError
 
@@ -91,28 +93,6 @@ for train_csv, special_term, seed_data, seed_weights in zip(list_train_csv, list
                             train_work_dir = train_main(args_train)
                             param_config = train_work_dir.split('/')[-1]
 
-                            # # # Start evaluation subprocess of F1-Scores
-                            for epoch in list_epochs:
-                                for theta in list_sim_threshold_track:
-                                    for delta in list_det_threshold_track:
-                                        dict_tmp = get_tracking_dict(model_type, use_aug, epoch, use_offsets, theta,
-                                                                     delta, param_config, input_mode)
-                                        argparse_tracking_dict.update(dict_tmp)
-                                        tracking_main(args_tracking)
-                                        for det_threshold in list_det_threshold_eval:
-                                            dict_tmp = get_eval_tracking_dict(model_type, use_aug, epoch, param_config,
-                                                                              theta, delta, det_threshold, input_mode,
-                                                                              show_faults)
-                                            argparse_eval_tracking_dict.update(dict_tmp)
-                                            # evaluate_tracking_main(args_eval_tracking)
-                                            # # Uncomment after debugging
-                                            try:
-                                                evaluate_tracking_main(args_eval_tracking)
-                                            except:
-                                                print("Some file or path is not existent, "
-                                                      "or some tracking or eval thresholds are too high!")
-                            # # # End of evaluation subprocess
-
                             test_path = f"{model_type}_Plot_Analysis/{test_content}/{param_config}"
                             from_path = train_work_dir + "/None.log.json"
                             to_path = "references/mmdetection/tools/analysis_tools/" + test_path
@@ -129,6 +109,36 @@ for train_csv, special_term, seed_data, seed_weights in zip(list_train_csv, list
                             except OSError as error:
                                 print(f"File None.log.json not found in {to_path}!")
                             shutil.copy(from_path, to_path)
+
+                            # # # Start evaluation subprocess of F1-Scores
+                            savePath = to_path + "/evals_f1_score"
+                            try:
+                                os.makedirs(savePath)
+                            except OSError as error:
+                                print(f"File path {savePath} already exists!")
+
+                            for epoch in list_epochs:
+                                for theta in list_sim_threshold_track:
+                                    for delta in list_det_threshold_track:
+                                        dict_tmp = get_tracking_dict(model_type, use_aug, epoch, use_offsets, theta,
+                                                                     delta, param_config, input_mode)
+                                        argparse_tracking_dict.update(dict_tmp)
+                                        tracking_main(args_tracking)
+                                        for det_threshold in list_det_threshold_eval:
+                                            dict_tmp = get_eval_tracking_dict(savePath, model_type, use_aug, epoch,
+                                                                              param_config,
+                                                                              theta, delta, det_threshold, input_mode,
+                                                                              show_faults)
+                                            argparse_eval_tracking_dict.update(dict_tmp)
+                                            # evaluate_tracking_main(args_eval_tracking)
+                                            # # Uncomment after debugging
+                                            try:
+                                                evaluate_tracking_main(args_eval_tracking)
+                                            except:
+                                                print("Some file or path is not existent, "
+                                                      "or some tracking or eval thresholds are too high!")
+                            # # # End of evaluation subprocess
+
                             if delete_weights:
                                 for i in range(1, val_max_epochs+1):
                                     if os.path.isfile(train_work_dir + f"/epoch_{i}.pth"):

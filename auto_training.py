@@ -100,6 +100,8 @@ if __name__ == '__main__':
     list_special_term = [f"_run_{i+1}" for i in range(0, 5)]
     list_seed_data = random.sample(range(100), 5)  # seed creation without duplicates for data sampling
     list_seed_weights = random.sample(range(100), 5)  # seed creation without duplicates for weights
+    # list_seed_data = [0]
+    # list_seed_weights = [0]
     test_content = "01_Test_DA/no_DA"
 
     # list_train_csv = [None]
