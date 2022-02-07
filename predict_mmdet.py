@@ -274,9 +274,14 @@ def load_model(model_type, use_aug, model_epoch, param_config):
             config_file = Config.fromfile(
                 "references/mmdetection/configs/vfnet/vfnet_x101_64x4d_fpn_mdconv_c3-c5_mstrain_2x_coco_SPINE.py")
     elif model_type == "Def_DETR":
-        checkpoint_file = os.path.join(model_folder, "Def_DETR_R50_no_data_augmentation")
-        config_file = Config.fromfile(
-            "references/mmdetection/configs/deformable_detr/deformable_detr_twostage_refine_r50_16x2_50e_coco_SPINE.py")
+        if use_aug == "True":
+            checkpoint_file = os.path.join(model_folder, "Def_DETR_R50_data_augmentation")
+            config_file = Config.fromfile(
+                "references/mmdetection/configs/deformable_detr/deformable_detr_twostage_refine_r50_16x2_50e_coco_SPINE_AUG.py")
+        else:
+            checkpoint_file = os.path.join(model_folder, "Def_DETR_R50_no_data_augmentation")
+            config_file = Config.fromfile(
+                "references/mmdetection/configs/deformable_detr/deformable_detr_twostage_refine_r50_16x2_50e_coco_SPINE.py")
     else:
         checkpoint_file = os.path.join(model_folder, "Cascade_RCNN")
         config_file = Config.fromfile(
