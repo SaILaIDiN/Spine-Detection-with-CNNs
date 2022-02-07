@@ -31,10 +31,10 @@ def compute_mean_and_std(df):
 
 def scatter_plot_h_w(X, Y, mean_and_std, xlabel, ylabel, title=None, output=None):
     """ Height and Width """
-    plt.xlabel(xlabel, fontsize=15)
-    plt.ylabel(ylabel, fontsize=16)
-    plt.xticks(fontsize=14)
-    plt.yticks(fontsize=14)
+    plt.xlabel(xlabel, fontsize=20)
+    plt.ylabel(ylabel, fontsize=20)
+    plt.xticks(fontsize=19)
+    plt.yticks(fontsize=19)
     plt.axhline(y=mean_and_std["mean_height"], color="purple", linestyle="--", label="mean (heights)")
     plt.axvline(x=mean_and_std["mean_width"], color="red", linestyle="--", label="mean (widths)")
     plt.axhspan(ymin=mean_and_std["mean_height"]-mean_and_std["std_height"],
@@ -62,10 +62,10 @@ def scatter_plot_h_w(X, Y, mean_and_std, xlabel, ylabel, title=None, output=None
 
 def scatter_plot_a_a(X, Y, mean_and_std, xlabel, ylabel, title=None, output=None):
     """ Aspect Ratio and Area """
-    plt.xlabel(xlabel, fontsize=15)
-    plt.ylabel(ylabel, fontsize=16)
-    plt.xticks(fontsize=14)
-    plt.yticks(fontsize=14)
+    plt.xlabel(xlabel, fontsize=20)
+    plt.ylabel(ylabel, fontsize=20)
+    plt.xticks(fontsize=19)
+    plt.yticks(fontsize=19)
     plt.axhline(y=mean_and_std["mean_aspect"], color="purple", linestyle="--", label="mean (aspect ratio)")
     plt.axvline(x=mean_and_std["mean_area"], color="red", linestyle="--", label="mean (area)")
     plt.axhspan(ymin=mean_and_std["mean_aspect"]-mean_and_std["std_aspect"],
@@ -92,10 +92,10 @@ def scatter_plot_a_a(X, Y, mean_and_std, xlabel, ylabel, title=None, output=None
 
 
 def histogram_plot(X, xlabel, ylabel, output=None):
-    plt.xlabel(xlabel, fontsize=15)
-    plt.ylabel(ylabel, fontsize=16)
-    plt.xticks(fontsize=14)
-    plt.yticks(fontsize=14)
+    plt.xlabel(xlabel, fontsize=20)
+    plt.ylabel(ylabel, fontsize=20)
+    plt.xticks(fontsize=19)
+    plt.yticks(fontsize=19)
     plt.locator_params(axis='x', nbins=5)  # only necessary for test_df
     bar_ticks = np.linspace(X.min(), X.max(), num=int((X.max()-X.min())/0.1)+1)
     plt.hist(X, rwidth=0.75, bins=bar_ticks)
@@ -109,18 +109,18 @@ def histogram_plot(X, xlabel, ylabel, output=None):
 
 
 def density_plot(X, xlabel, ylabel, output=None):
-    plt.xlabel(xlabel, fontsize=15)
-    plt.ylabel(ylabel, fontsize=16)
-    plt.xticks(fontsize=14)
-    plt.yticks(fontsize=14)
-    plt.locator_params(axis='x', nbins=7)  # for train
-    sns.distplot(X, kde=False, hist_kws={"rwidth": 0.75, 'edgecolor': 'black', 'alpha': 1.0}, bins=28)  # train
+    plt.xlabel(xlabel, fontsize=20)
+    plt.ylabel(ylabel, fontsize=20)
+    plt.xticks(fontsize=19)
+    plt.yticks(fontsize=19)
+    # plt.locator_params(axis='x', nbins=7)  # for train
+    # sns.distplot(X, kde=False, hist_kws={"rwidth": 0.75, 'edgecolor': 'black', 'alpha': 1.0}, bins=28)  # train
 
     # plt.locator_params(axis='x', nbins=6)  # for val
     # sns.distplot(X, kde=False, hist_kws={"rwidth": 0.75, 'edgecolor': 'black', 'alpha': 1.0}, bins=21)  # val
 
-    # plt.locator_params(axis='x', nbins=5)  # for test
-    # sns.distplot(X, kde=False, hist_kws={"rwidth": 0.75, 'edgecolor': 'black', 'alpha': 1.0}, bins=16)  # test
+    plt.locator_params(axis='x', nbins=5)  # for test
+    sns.distplot(X, kde=False, hist_kws={"rwidth": 0.75, 'edgecolor': 'black', 'alpha': 1.0}, bins=16)  # test
 
     plt.tight_layout()
     if output is None:
@@ -144,32 +144,32 @@ if __name__ == "__main__":
     test_df = pd.read_csv(test_csv_path).round(decimals=0)
 
     # # # Scatter Plot
-    df_height_train, df_width_train = get_height_and_width(test_df)
-    mean_height, std_height = compute_mean_and_std(df_height_train)
-    mean_width, std_width = compute_mean_and_std(df_width_train)
-    mean_and_std_dict = {"mean_height": mean_height, "mean_width": mean_width,
-                         "std_height": std_height, "std_width": std_width}
-    scatter_plot_h_w(df_width_train, df_height_train, mean_and_std_dict, "width [pixel]", "height [pixel]",
-                     output="scatter_test")
-    print(mean_height, std_height, mean_width, std_width)
+    # df_height_train, df_width_train = get_height_and_width(val_df)
+    # mean_height, std_height = compute_mean_and_std(df_height_train)
+    # mean_width, std_width = compute_mean_and_std(df_width_train)
+    # mean_and_std_dict = {"mean_height": mean_height, "mean_width": mean_width,
+    #                      "std_height": std_height, "std_width": std_width}
+    # scatter_plot_h_w(df_width_train, df_height_train, mean_and_std_dict, "width [pixel]", "height [pixel]",
+    #                  output="scatter_val")
+    # print(mean_height, std_height, mean_width, std_width)
 
     # # # Aspect Ratio Plot
-    # df_height_train, df_width_train = get_height_and_width(val_df)
-    # df_aspect_ratios, _ = get_aspect_ratio_and_area(df_height_train, df_width_train)
-    # print(df_aspect_ratios)
-    # print(df_aspect_ratios.round(decimals=1))
-    # histogram_plot(df_aspect_ratios.round(decimals=2), "aspect ratio", "number of spines",
-    #                "histogram_test")
-    # density_plot(df_aspect_ratios.round(decimals=2), "aspect ratio", "number of spines",
-    #              "density_val")
+    df_height_train, df_width_train = get_height_and_width(test_df)
+    df_aspect_ratios, _ = get_aspect_ratio_and_area(df_height_train, df_width_train)
+    print(df_aspect_ratios)
+    print(df_aspect_ratios.round(decimals=1))
+    histogram_plot(df_aspect_ratios.round(decimals=2), "aspect ratio", "number of spines",
+                   "histogram_test")
+    density_plot(df_aspect_ratios.round(decimals=2), "aspect ratio", "number of spines",
+                 "density_test")
 
-    # # # Aspect Ratio to Area Scatter Plot
-    # df_height_train, df_width_train = get_height_and_width(train_df)
+    # # # # Aspect Ratio to Area Scatter Plot
+    # df_height_train, df_width_train = get_height_and_width(test_df)
     # df_aspect_ratios, df_area = get_aspect_ratio_and_area(df_height_train, df_width_train)
     # mean_aspect, std_aspect = compute_mean_and_std(df_aspect_ratios)
     # mean_area, std_area = compute_mean_and_std(df_area)
     # mean_and_std_dict = {"mean_aspect": mean_aspect, "mean_area": mean_area,
     #                      "std_aspect": std_aspect, "std_area": std_area}
     # scatter_plot_a_a(df_area, df_aspect_ratios, mean_and_std_dict, "area [pixel]", "aspect ratio",
-    #                  output="scatter_aspect_area_train")
+    #                  output="scatter_aspect_area_test")
     # print(mean_aspect, std_aspect, mean_area, std_area)
