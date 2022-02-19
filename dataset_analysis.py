@@ -46,6 +46,7 @@ def scatter_plot_h_w(X, Y, mean_and_std, xlabel, ylabel, title=None, output=None
     ax = plt.gca()
     ax.set_xlim(xmin=5, xmax=55)
     ax.set_ylim(bottom=5, ymax=55)
+    # plt.rcParams.update({"font.size": 5})  # This changes the font size inside the legend box!!!
     plt.scatter(X, Y, linewidths=0.1, alpha=0.7)
     plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc='lower left',
                ncol=2, mode="expand", borderaxespad=0., fontsize="x-large")
@@ -77,6 +78,7 @@ def scatter_plot_a_a(X, Y, mean_and_std, xlabel, ylabel, title=None, output=None
     ax = plt.gca()
     ax.set_xlim(xmin=0, xmax=2300)
     ax.set_ylim(bottom=0, ymax=3.25)
+    # plt.rcParams.update({"font.size": 5})  # This changes the font size inside the legend box!!!
     plt.scatter(X, Y, linewidths=0.1, alpha=0.7)
     plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc='lower left',
                ncol=2, mode="expand", borderaxespad=0., fontsize="x-large")
@@ -144,24 +146,24 @@ if __name__ == "__main__":
     test_df = pd.read_csv(test_csv_path).round(decimals=0)
 
     # # # Scatter Plot
-    # df_height_train, df_width_train = get_height_and_width(val_df)
-    # mean_height, std_height = compute_mean_and_std(df_height_train)
-    # mean_width, std_width = compute_mean_and_std(df_width_train)
-    # mean_and_std_dict = {"mean_height": mean_height, "mean_width": mean_width,
-    #                      "std_height": std_height, "std_width": std_width}
-    # scatter_plot_h_w(df_width_train, df_height_train, mean_and_std_dict, "width [pixel]", "height [pixel]",
-    #                  output="scatter_val")
-    # print(mean_height, std_height, mean_width, std_width)
+    df_height_train, df_width_train = get_height_and_width(val_df)
+    mean_height, std_height = compute_mean_and_std(df_height_train)
+    mean_width, std_width = compute_mean_and_std(df_width_train)
+    mean_and_std_dict = {"mean_height": mean_height, "mean_width": mean_width,
+                         "std_height": std_height, "std_width": std_width}
+    scatter_plot_h_w(df_width_train, df_height_train, mean_and_std_dict, "width [pixel]", "height [pixel]",
+                     output="scatter_val")
+    print(mean_height, std_height, mean_width, std_width)
 
     # # # Aspect Ratio Plot
-    df_height_train, df_width_train = get_height_and_width(test_df)
-    df_aspect_ratios, _ = get_aspect_ratio_and_area(df_height_train, df_width_train)
-    print(df_aspect_ratios)
-    print(df_aspect_ratios.round(decimals=1))
-    histogram_plot(df_aspect_ratios.round(decimals=2), "aspect ratio", "number of spines",
-                   "histogram_test")
-    density_plot(df_aspect_ratios.round(decimals=2), "aspect ratio", "number of spines",
-                 "density_test")
+    # df_height_train, df_width_train = get_height_and_width(test_df)
+    # df_aspect_ratios, _ = get_aspect_ratio_and_area(df_height_train, df_width_train)
+    # print(df_aspect_ratios)
+    # print(df_aspect_ratios.round(decimals=1))
+    # histogram_plot(df_aspect_ratios.round(decimals=2), "aspect ratio", "number of spines",
+    #                "histogram_test")
+    # density_plot(df_aspect_ratios.round(decimals=2), "aspect ratio", "number of spines",
+    #              "density_test")
 
     # # # # Aspect Ratio to Area Scatter Plot
     # df_height_train, df_width_train = get_height_and_width(test_df)

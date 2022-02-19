@@ -254,6 +254,24 @@ original_image.save("albumentations_plots/original.png")
 # augmented_image.show()
 
 # what we choose (but with (0, X))
+transform = GaussNoise(var_limit=(25000, 25000), p=1.0)
+augmented_image = transform(image=image)['image']
+augmented_image = Image.fromarray(augmented_image)
+# augmented_image.show()
+augmented_image.save("albumentations_plots/noise_25000_p_10.png")
+
+transform = GaussNoise(var_limit=(15000, 15000), p=1.0)
+augmented_image = transform(image=image)['image']
+augmented_image = Image.fromarray(augmented_image)
+# augmented_image.show()
+augmented_image.save("albumentations_plots/noise_15000_p_10.png")
+
+transform = GaussNoise(var_limit=(10000, 10000), p=1.0)
+augmented_image = transform(image=image)['image']
+augmented_image = Image.fromarray(augmented_image)
+# augmented_image.show()
+augmented_image.save("albumentations_plots/noise_10000_p_10.png")
+
 transform = GaussNoise(var_limit=(2000, 2000), p=1.0)
 augmented_image = transform(image=image)['image']
 augmented_image = Image.fromarray(augmented_image)
