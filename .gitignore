@@ -3,10 +3,11 @@
 /.idea
 /__pycache__
 /results
+/tutorial_exps
+/albumentations_plots
 /references/mmdetection/checkpoints/*.pth
 INFO
 result*.png
-/tutorial_exps
 
 
 % % % % DIVERSE (not relevant for main code)
@@ -23,15 +24,21 @@ low_level_analysis_aug.py
 subset_training.py
 
 % % Not categorized
+references/mmdetection/tools/analysis_tools/OLD
 references/mmdetection/tools/analysis_tools/Cascade-RCNN_Plot_Analysis
-references/mmdetection/tools/analysis_tools/GFL_Plot_Analysis
 references/mmdetection/tools/analysis_tools/VFNet_Plot_Analysis
-references/mmdetection/tools/analysis_tools/Detection_Threshold_Analysis
+references/mmdetection/tools/analysis_tools/Def_DETR_Plot_Analysis
+references/mmdetection/tools/analysis_tools/PCA-Plots
+references/mmdetection/tools/analysis_tools/t-SNE-Plots
 references/mmdetection/tools/analysis_tools/auto_plotting.py
-references/mmdetection/tools/analysis_tools/custom_plotting.py
 references/mmdetection/tools/analysis_tools/plotting_randomflip.py
+references/mmdetection/tools/analysis_tools/plotting_anchor_modes.py
+references/mmdetection/tools/analysis_tools/plotting_old_models.py
+references/mmdetection/tools/analysis_tools/plotting_val_vs_test.py
+references/mmdetection/tools/analysis_tools/try_load_json_logs.py
+
+
 references/mmdetection/tools/analysis_tools/__pycache__
-references/mmdetection/tools/analysis_tools/Detection_Threshold_Analysis_OLD_BACKUP
 
 
 
