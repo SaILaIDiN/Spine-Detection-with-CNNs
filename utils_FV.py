@@ -108,8 +108,8 @@ def calc_metric(centroid1: List, centroid2: List, metric: str = 'iom') -> float:
     # beta=low because z_iom should not count that much
     beta = 0.5
     if iom == 0 or z_iom == 0:
-        if iom != 0 and z_iom == 0:
-            print(f"z-Problem: iom is {iom} while z_iom is {z_iom}")
+        # if iom != 0 and z_iom == 0:
+        #     print(f"z-Problem: iom is {iom} while z_iom is {z_iom}")
         return 0
     final_score = (1 + beta**2) * (iom * z_iom)/(beta**2 * iom + z_iom)
     return final_score
