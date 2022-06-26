@@ -1,23 +1,28 @@
 /data
 /output
-/own_models2
-/PennFudanPed
-mask_rcnn_pytorch_tut.py
 /.idea
 /__pycache__
 /results
-tracking_offset.py
 /references/mmdetection/checkpoints/*.pth
 INFO
 result*.png
 /tutorial_exps
 
-% % DIVERSE (not relevant for main code)
+
+% % % % DIVERSE (not relevant for main code)
+
+% % Not relevant for main code
 check_config.py
 correct_data_dir.py
 manipulate_train_val_csv.py
 csv_checkup.py
 
+% % Potential future directions
+low_level_analysis.py
+low_level_analysis_aug.py
+subset_training.py
+
+% % Not categorized
 references/mmdetection/tools/analysis_tools/Cascade-RCNN_Plot_Analysis
 references/mmdetection/tools/analysis_tools/GFL_Plot_Analysis
 references/mmdetection/tools/analysis_tools/VFNet_Plot_Analysis
