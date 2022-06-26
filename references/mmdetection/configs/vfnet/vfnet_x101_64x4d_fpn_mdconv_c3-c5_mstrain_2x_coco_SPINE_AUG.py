@@ -75,21 +75,30 @@ albu_train_transforms = [
         p=0.5),
     dict(
         type='RandomBrightnessContrast',
-        brightness_limit=[0.1, 0.3],
-        contrast_limit=[0.1, 0.3],
-        p=0.2),
+        brightness_limit=[-0.5, 0.5],
+        contrast_limit=[-0.5, 0.5],
+        p=1.0),
     dict(# Make the image more black or more white overall, only value is useful here in greyscale
         type='HueSaturationValue',
         hue_shift_limit=0,
         sat_shift_limit=0,
         val_shift_limit=0, # But color value seems to be the same as brightness
-        p=1.0),
+        p=0.0),
+    dict(
+        type='GaussNoise',
+        var_limit=[0, 15000],
+        p=0.0),
+    dict(
+        type='GaussianBlur',
+        blur_limit=[0, 3],
+        sigma_limit=0,
+        p=0.0),
 ]
 train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadAnnotations', with_bbox=True),
     dict(type='Resize', img_scale=(512, 512), keep_ratio=True),
-    dict(type='RandomFlip', flip_ratio=0.5),
+    dict(type='RandomFlip', flip_ratio=0.0),
     dict(
         type='Albu',
         transforms=albu_train_transforms,
@@ -106,7 +115,7 @@ train_pipeline = [
         update_pad_shape=False,
         skip_img_without_anno=True),
     dict(type='Normalize', **img_norm_cfg),
-    #dict(type='Pad', size_divisor=32),
+    dict(type='Pad', size_divisor=32),
     dict(type='DefaultFormatBundle'),
     dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels']),
 ]
@@ -118,7 +127,7 @@ test_pipeline = [
         flip=False,
         transforms=[
             dict(type='Resize', keep_ratio=True),
-            dict(type='RandomFlip'),
+            dict(type='RandomFlip', flip_ratio=0.0),
             dict(type='Normalize', **img_norm_cfg),
             #dict(type='Pad', size_divisor=32),
             dict(type='ImageToTensor', keys=['img']),
@@ -157,7 +166,7 @@ lr_config = dict(
     warmup='linear',
     warmup_iters=500,
     warmup_ratio=0.001,
-    step=[8, 11])
+    step=[40])
 runner = dict(type='EpochBasedRunner', max_epochs=10)
 
 checkpoint_config = dict(interval=1)
