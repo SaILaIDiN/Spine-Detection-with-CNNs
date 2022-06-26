@@ -1,2 +1,0 @@
-print("Test")
-print("Test")
