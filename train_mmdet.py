@@ -51,7 +51,18 @@ def train_main(args):
 
     model_folder = "tutorial_exps"
     print("[INFO] Loading model ...")
-    if model_type == "Cascade-RCNN":
+    if model_type == "Faster-RCNN":
+        if use_aug == "True":
+            dir_train_checkpoint = os.path.join(model_folder, "Faster_RCNN_data_augmentation")
+            config_file = Config.fromfile(
+                "references/mmdetection/configs/faster_rcnn/faster_rcnn_x101_64x4d_fpn_mstrain_3x_coco_SPINE_AUG.py")
+        else:
+            dir_train_checkpoint = os.path.join(model_folder, "Faster_RCNN_no_data_augmentation")
+            config_file = Config.fromfile(
+                "references/mmdetection/configs/faster_rcnn/faster_rcnn_x101_64x4d_fpn_mstrain_3x_coco_SPINE.py")
+        coco_checkpoint = \
+            'references/mmdetection/checkpoints/faster_rcnn_x101_64x4d_fpn_mstrain_3x_coco_20210524_124528-26c63de6.pth'
+    elif model_type == "Cascade-RCNN":
         if use_aug == "True":
             dir_train_checkpoint = os.path.join(model_folder, "Cascade_RCNN_data_augmentation")
             config_file = Config.fromfile(

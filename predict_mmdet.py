@@ -1,8 +1,3 @@
-import torch
-import torchvision
-from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
-from torchvision.transforms import functional as F
-
 from mmdet.apis import init_detector, inference_detector
 from mmcv import Config
 
@@ -246,7 +241,16 @@ def load_model(model_type, use_aug, model_epoch, param_config):
 
     model_folder = "tutorial_exps"
     print("[INFO] Loading model ...")
-    if model_type == "Cascade-RCNN":
+    if model_type == "Faster-RCNN":
+        if use_aug == "True":
+            checkpoint_file = os.path.join(model_folder, "Faster_RCNN_data_augmentation")
+            config_file = Config.fromfile(
+                "references/mmdetection/configs/faster_rcnn/faster_rcnn_x101_64x4d_fpn_mstrain_3x_coco_SPINE_AUG.py")
+        else:
+            checkpoint_file = os.path.join(model_folder, "Faster_RCNN_no_data_augmentation")
+            config_file = Config.fromfile(
+                "references/mmdetection/configs/faster_rcnn/faster_rcnn_x101_64x4d_fpn_mstrain_3x_coco_SPINE.py")
+    elif model_type == "Cascade-RCNN":
         if use_aug == "True":
             checkpoint_file = os.path.join(model_folder, "Cascade_RCNN_data_augmentation")
             config_file = Config.fromfile(
@@ -414,7 +418,6 @@ if __name__ == '__main__':
 
     print(output_path, model_name, csv_path)
     # Path to the actual model that is used for the object detection.
-    # PATH_TO_CKPT = os.path.join('own_models2', args.model, 'faster_rcnn_model.pth')
 
     # Decide whether to predict the bboxes or to load from csv
     if not args.use_csv:
