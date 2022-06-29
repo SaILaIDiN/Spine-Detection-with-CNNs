@@ -1,5 +1,6 @@
 # model settings
 model = dict(
+    type='FasterRCNN',
     backbone=dict(
         type='ResNeXt',
         depth=101,
