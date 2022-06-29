@@ -47,8 +47,10 @@ dict_toggle_data_seed = {"data_aug_seeds": [0, 0, 0, 0, 0], "data_sample_seeds":
                          "weights_seeds": [0, 0, 0, 0, 0]}
 dict_toggle_weight_seed = {"data_aug_seeds": [0, 0, 0, 0, 0], "data_sample_seeds": [0, 0, 0, 0, 0],
                            "weights_seeds": [0, 5, 13, 27, 43]}
-seed_dict_list = [dict_all_seeds_fixed, dict_toggle_data_aug_seed, dict_toggle_data_seed, dict_toggle_weight_seed]
-
+dict_all_seeds_random = {"data_aug_seeds": [0, 5, 13, 27, 43], "data_sample_seeds": [0, 5, 13, 27, 43],
+                         "weights_seeds": [0, 5, 13, 27, 43]}
+seed_dict_list = [dict_all_seeds_fixed, dict_toggle_data_aug_seed, dict_toggle_data_seed, dict_toggle_weight_seed,
+                  dict_all_seeds_random]
 
 list_model_type = ["Cascade-RCNN"]
 list_use_aug = ["False"]
