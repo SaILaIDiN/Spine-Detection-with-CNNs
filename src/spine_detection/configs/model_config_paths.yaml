@@ -1,0 +1,22 @@
+base_config_path: references/mmdetection/configs/
+base_checkpoint_path: references/mmdetection/checkpoints/
+model_paths:
+  default:
+    base_checkpoint: Cascade_RCNN
+    base_config: cascade_rcnn/cascade_rcnn_r50_fpn_1x_coco
+  Faster-RCNN:
+    base_checkpoint: Faster_RCNN
+    base_config: faster_rcnn/faster_rcnn_x101_64x4d_fpn_mstrain_3x_coco
+  Cascade-RCNN:
+    base_checkpoint: Cascade_RCNN
+    base_config: cascade_rcnn/cascade_rcnn_x101_64x4d_fpn_1x_coco
+  GFL:
+    base_checkpoint: GFL_RX101
+    base_config: gfl/gfl_x101_32x4d_fpn_dconv_c4-c5_mstrain_2x_coco
+  VFNet:
+    base_checkpoint: VFNet_RX101
+    base_config: vfnet/vfnet_x101_64x4d_fpn_mdconv_c3-c5_mstrain_2x_coco
+  Def_DETR:
+    base_checkpoint: Def_DETR_R50
+    base_config: deformable_detr/deformable_detr_twostage_refine_r50_16x2_50e_coco
+  

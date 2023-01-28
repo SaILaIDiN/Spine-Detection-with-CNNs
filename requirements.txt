@@ -1,0 +1,7 @@
+yacs
+mmdet==2.25
+black
+scipy
+pandas
+# opencv-python
+# conda install pytorch torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c nvidia
