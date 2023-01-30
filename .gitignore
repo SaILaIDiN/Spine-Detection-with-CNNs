@@ -205,3 +205,5 @@ references/mmdetection/tools/analysis_tools/plotting_anchor_modes.py
 references/mmdetection/tools/analysis_tools/plotting_old_models.py
 references/mmdetection/tools/analysis_tools/plotting_val_vs_test.py
 references/mmdetection/tools/analysis_tools/try_load_json_logs.py
+
+*.zip
