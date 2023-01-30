@@ -17,48 +17,10 @@ from spine_detection.utils.model_utils import (
     get_config_path,
     get_pretrained_checkpoint_path,
     load_config,
+    parse_args,
 )
 
 logger = logging.getLogger(__name__)
-
-parser = argparse.ArgumentParser(
-    description="Train a model with given config and checkpoint file",
-    formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-)
-
-parser.add_argument("-tr", "--train_csv", default=None, help="annotation file for training data")
-parser.add_argument("-sp", "--special_term", default="", help="name appendix to store in different train folders")
-parser.add_argument(
-    "-mt",
-    "--model_type",
-    help="decide which model to use as config and checkpoint file. " "use one of [Cascade_RCNN, GFL, VFNet, Def_DETR]",
-)
-parser.add_argument("-ms", "--model_suffix", help="Suffix of checkpoint model, usually starting with the date.")
-parser.add_argument(
-    "-ua", "--use_aug", action="store_true", help="decide to load the config file with or without data augmentation"
-)
-parser.add_argument("-sd", "--seed_data", default=0, help="seed for the data loader, random if None")
-parser.add_argument("-sw", "--seed_weights", default=0, help="seed for initial random weights")
-# The following arguments are primary parameters for optimization
-# if there is no default defined, this parameter will take up the predefined value in the config file
-parser.add_argument("-lr", "--learning_rate", default=0.0005)
-parser.add_argument("-me", "--max_epochs", default=10)
-parser.add_argument("-wu", "--warm_up", default=None, help="learning rate warm up, use None to disable")
-parser.add_argument("-st", "--steps_decay", default=None, help="steps for lr decay")
-parser.add_argument("-mom", "--momentum", default=None, help="only for optimizer SGD")
-parser.add_argument("-wd", "--weight_decay", default=None, help="only for optimizer SGD")
-parser.add_argument("-do", "--dropout", default=None, help="overloading this parameter, varies by model type!")
-
-# The following arguments are secondary parameters used for data augmentation
-parser.add_argument("-prbc", "--p_rbc", default=None, help="p for RandomBrightnessContrast")
-parser.add_argument("-rb", "--random_brightness", default=None, help="from RandomBrightnessContrast")
-parser.add_argument("-rc", "--random_contrast", default=None, help="from RandomBrightnessContrast")
-parser.add_argument("-vf", "--vertical_flip", default=None, help="p for VerticalFlip")
-parser.add_argument("-hf", "--horizontal_flip", default=None, help="p for HorizontalFlip")
-parser.add_argument("-ro", "--rotate", default=None, help="p for Rotate")
-
-# The following arguments are secondary parameters used for the anchor generator in RCNN-models
-# # # MISSING
 
 
 def train_main(args):
@@ -76,7 +38,6 @@ def train_main(args):
         model_type = "default"
     dir_train_checkpoint = get_checkpoint_path(model_type, model_folder, use_aug, paths_cfg)
     config_file = get_config_path(model_type, use_aug, paths_cfg)
-    coco_checkpoint = get_pretrained_checkpoint_path(model_type, paths_cfg, model_suffix)
     logger.info("Loading model ...")
 
     # # # Set up config file to manipulate for training
@@ -90,12 +51,17 @@ def train_main(args):
 
     # # # NOTE: either use 'cfg.resume_from' or 'cfg.load_from'
     # this loads the pretrained weights on COCO dataset into our model (or resume from a model)
-    # cfg.resume_from = os.path.join(dir_train_checkpoint,
-    #                                'lr_' + str(args.learning_rate) + '_warmup_' + str(args.warm_up) +
-    #                                '_momentum_' + str(args.momentum))
+    if args.resume:
+        if not args.checkpoint:
+            args.checkpoint = (
+                "lr_" + str(args.learning_rate) + "_warmup_" + str(args.warm_up) + "_momentum_" + str(args.momentum)
+            )
 
-    # # Define the correct checkpoint file to start the model training with pretrained weights
-    cfg.load_from = coco_checkpoint
+        cfg.resume_from = os.path.join(dir_train_checkpoint, args.checkpoint)
+    else:
+        # # Define the correct checkpoint file to start the model training with pretrained weights
+        coco_checkpoint = get_pretrained_checkpoint_path(model_type, paths_cfg, model_suffix)
+        cfg.load_from = coco_checkpoint
 
     # directory for the trained model weights
     cfg.work_dir = os.path.join(
@@ -171,5 +137,5 @@ def train_main(args):
 
 
 if __name__ == "__main__":
-    args = parser.parse_args()
+    args = parse_args(mode="train")
     train_main(args)

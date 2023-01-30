@@ -2,7 +2,7 @@ base_config_path: references/mmdetection/configs/
 base_checkpoint_path: references/mmdetection/checkpoints/
 model_paths:
   default:
-    base_checkpoint: Cascade_RCNN
+    base_checkpoint: Cascade_RCNN_model
     base_config: cascade_rcnn/cascade_rcnn_r50_fpn_1x_coco
   Faster-RCNN:
     base_checkpoint: Faster_RCNN

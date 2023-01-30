@@ -10,83 +10,15 @@ import cv2
 import numpy as np
 import pandas as pd
 import scipy.io
+from tqdm import tqdm
 
 from spine_detection.predict_mmdet import predict_images
 from spine_detection.utils.data_utils import csv_to_boxes
-from spine_detection.utils.model_utils import load_model
+from spine_detection.utils.model_utils import load_model, parse_args
 from spine_detection.utils.opencv_utils import draw_boxes, image_load_encode
 from spine_detection.utils.tracker import CentroidTracker as CT
 
 logger = logging.getLogger(__name__)
-parser = argparse.ArgumentParser(
-    description="Track spines in the whole stack", formatter_class=argparse.ArgumentDefaultsHelpFormatter
-)
-
-parser.add_argument(
-    "-T", "--tif", required=False, help="Path to input tif stack, if this and image-flag are set, images are priorized"
-)
-parser.add_argument("-i", "--images", required=False, help="Path to input images")
-parser.add_argument(
-    "-t", "--delta", help="Threshold for delta (detection threshold, score level)", default=0.5, type=float
-)
-parser.add_argument(
-    "-th", "--theta", help="Threshold for theta (detection similarity threshold, IOM level)", default=0.5, type=float
-)
-parser.add_argument("-ta", "--tau", help="Threshold for tau (tracking threshold)", default=0.3, type=float)
-parser.add_argument("-a", "--appeared", help="appeared counter", default=0, type=int)
-parser.add_argument("-d", "--disappeared", help="disappeared counter", default=0, type=int)
-parser.add_argument("-m", "--model", help="Path to model you want to analyze with")
-parser.add_argument(
-    "-c",
-    "--csv",
-    required=False,
-    help="Single file or folder of csv files for previous prediction. "
-    "If this flag is set, no model prediction will be executed",
-)
-
-parser.add_argument("-s", "--save-images", action="store_true", help="Activate this flag if images should be saved")
-parser.add_argument(
-    "-o",
-    "--output",
-    required=False,
-    help="Path where tracking images and csv should be saved, default: output/tracking/MODEL",
-)
-parser.add_argument("-f", "--file-save", help="Name of tracked data csv file", default="data_tracking")
-parser.add_argument(
-    "-mc",
-    "--metric",
-    default="iom",
-    help="Metric which should be used for evaluating. Currently available: iom, iou. "
-    "Own metric can be implemented as lambda function which takes two arguments and returns one.",
-)
-parser.add_argument("-uo", "--use_offsets", default="False", help="whether offsets should be used or not")
-# For load_model()
-parser.add_argument(
-    "-mt",
-    "--model_type",
-    help="decide which model to use as config and checkpoint file. " "use one of [Cascade_RCNN, GFL, VFNet, Def_DETR]",
-)
-parser.add_argument(
-    "-ua", "--use-aug", action="store_true", help="decide to load the config file with or without data augmentation"
-)
-parser.add_argument(
-    "-me",
-    "--model_epoch",
-    default="epoch_1",
-    help="decide the epoch number for the model weights. use the format of the default value",
-)
-parser.add_argument(
-    "-pc",
-    "--param_config",
-    default="",
-    help="string that contains all parameters intentionally tweaked during optimization",
-)
-parser.add_argument(
-    "-im",
-    "--input_mode",
-    default="Test",
-    help="defines the proper way of loading either train, val or test data as input",
-)
 
 
 def tracking_main(args):
@@ -108,11 +40,11 @@ def tracking_main(args):
     # folder: name of folder which is used in csv file for generating filename-column
     model_name = args.model.split("/")[-1] if args.model.split("/")[-1] != "" else args.model.split("/")[-2]
     if args.output is None:
-        args.output = os.path.join("output/prediction/", model_name, args.param_config)
+        args.output = os.path.join("output/tracking/", model_name, args.param_config)
     if not os.path.exists(args.output):
         os.makedirs(args.output)
     img_output_path = os.path.join(args.output, "images")
-    csv_output_path = os.path.join(args.output, args.param_config)
+    csv_output_path = args.output
     Path(csv_output_path).mkdir(parents=True, exist_ok=True)
     if args.model_type is None:
         args.model_type = "default"
@@ -216,7 +148,7 @@ def tracking_main(args):
         offsets = offsets - np.min(offsets, axis=0)
 
     # use given prediction for all images, if csv is available
-    for i, img in enumerate(all_imgs):
+    for i, img in tqdm(enumerate(all_imgs), total=len(all_imgs)):
         orig_img = Path(img).name
         if args.csv is not None:  # PART with no new prediction, instead use csv output from previous prediction
             # NOTE: make sure, that the used csv files are from the correct prediction model/ pth file!
@@ -357,5 +289,5 @@ def tracking_main(args):
 
 
 if __name__ == "__main__":
-    args = parser.parse_args()
+    args = parse_args(mode="tracking")
     tracking_main(args)

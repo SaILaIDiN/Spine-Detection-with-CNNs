@@ -4,20 +4,27 @@ echo "Starting downloading data..."
 fileid=1yi2tQ-0oJhElaSUDFn_UpZ-bUO0bH3_N; filename=data.zip;
 
 wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&id="$fileid"&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=$fileid' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')" -O $filename && rm -rf /tmp/cookies.txt
-echo "Starting downloading model..."
-# Download model.ckpt and frozen_inference_graph.pb files (without saved_model.pb)
-# ATTENTION: First subfolder is called own_models2!
-fileid=1IqXEYAbruormi9g354a1MtugQJQiZKGL; filename=model.zip;
+echo "Starting downloading models..."
 
-# wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&id="$fileid"&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=$fileid' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')" -O $filename && rm -rf /tmp/cookies.txt
+# Download Cascade RCNN
+fileid=1eLeqafL4UPM3-uPSV37SvEo00ONM-1tD; filename=cascade_rcnn.zip;
+wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&id="$fileid"&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=$fileid' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')" -O $filename && rm -rf /tmp/cookies.txt
+
+# Download Faster RCNN
+fileid=1OnbBMdaOsc9-TPFkOTr4geCNLT5Dv7w3; filename=faster_rcnn.zip;
+wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&id="$fileid"&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=$fileid' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')" -O $filename && rm -rf /tmp/cookies.txt
+
 echo "Finished download. Unzipping..."
 unzip data.zip -d .tmp
-# unzip model.zip -d .tmp
+unzip cascade_rcnn.zip -d .tmp
+unzip faster_rcnn.zip -d .tmp
 echo "Moving data to folders..."
 # Create data and models folder if necessary
 # Copy all downloaded files into those folders
 mv -f .tmp/data/ data/
-rm -r .tmp
+mkdir -p tutorial_exps
+mv -f .tmp/Cascade_RCNN_model tutorial_exps/Cascade_RCNN_model
+mv -f .tmp/Faster_RCNN_data_augmentation tutorial_exps/Faster_RCNN_data_augmentation
 
 cd data/default_annotations
 mv -f train.csv data_train.csv && mv -f valid.csv data_val.csv && mv -f test.csv data_test.csv

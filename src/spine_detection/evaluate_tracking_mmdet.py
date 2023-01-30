@@ -74,11 +74,11 @@ parser.add_argument(
     "--model",
     help="Model used for prediction (without frozen_inference_graph.pb!) or folder " "where csv files are saved",
 )
-parser.add_argument("-met", dest="metric", default="iom", metavar="", help="used metric. Options are 'iom' or 'iou'")
+parser.add_argument("-met", "--metric", default="iom", metavar="", help="used metric. Options are 'iom' or 'iou'")
 parser.add_argument("-tr", "--tracking", default="", help="path of used tracking file")
 parser.add_argument(
     "-gt",
-    dest="gt_file",
+    "--gt_file",
     default="output/tracking/GT/data_tracking_max_wo_offset.csv",
     help="given a list of gtFolders, name of gt_file is enough, "
     "otherwise a list of gt_files must be given, comma separated",

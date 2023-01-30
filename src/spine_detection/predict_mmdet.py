@@ -14,6 +14,7 @@ import pandas as pd
 import pkg_resources
 from mmcv import Config
 from mmdet.apis import inference_detector, init_detector
+from tqdm import tqdm
 
 from spine_detection.utils.data_utils import calc_metric_xy
 from spine_detection.utils.model_utils import (
@@ -21,6 +22,7 @@ from spine_detection.utils.model_utils import (
     get_config_path,
     load_config,
     load_model,
+    parse_args,
 )
 from spine_detection.utils.opencv_utils import (
     draw_boxes_predict,
@@ -29,50 +31,6 @@ from spine_detection.utils.opencv_utils import (
 )
 
 sys.path.append("..")
-
-parser = argparse.ArgumentParser(description="Make prediction on images")
-parser.add_argument(
-    "-m",
-    "--model",
-    help="Model used for prediction (without frozen_inference_graph.pb!) or folder " "where csv files are saved",
-)
-parser.add_argument(
-    "-t", "--delta", help="Threshold for delta (detection threshold, score level)", default=0.5, type=float
-)
-parser.add_argument(
-    "-th", "--theta", help="Threshold for theta (detection similarity threshold)", default=0.5, type=float
-)
-parser.add_argument(
-    "-C", "--use_csv", action="store_true", help="activate this flag if you want to use the given csv files"
-)
-parser.add_argument(
-    "-i ",
-    "--input",
-    help="Path to input image(s), ready for prediction. " 'Path can contain wildcards but must start and end with "',
-)
-parser.add_argument("-s", "--save_images", action="store_true", help="Activate this flag if images should be saved")
-parser.add_argument("-o", "--output", required=False, help="Path where prediction images and csvs should be saved")
-# For load_model() use_aug, model_epoch
-parser.add_argument(
-    "-mt",
-    "--model_type",
-    help="decide which model to use as config and checkpoint file. " "use one of [Cascade_RCNN, GFL, VFNet, Def_DETR]",
-)
-parser.add_argument(
-    "-ua", "--use_aug", action="store_true", help="decide to load the config file with or without data augmentation"
-)
-parser.add_argument(
-    "-me",
-    "--model_epoch",
-    default="epoch_1",
-    help="decide the epoch number for the model weights. use the format of the default value",
-)
-parser.add_argument(
-    "-pc",
-    "--param_config",
-    default="",
-    help="string that contains all parameters intentionally tweaked during optimization",
-)
 
 
 def postprocess(boxes, scores, theta=0.5):
@@ -232,7 +190,7 @@ def predict_images(
     else:
         image_loader = []
         logger.error("Wrong input mode!")
-    for img in image_loader:
+    for img in tqdm(image_loader):
         image_np, orig_w, orig_h = image_load_encode(img)
 
         # Each box represents a part of the image where a particular object was detected.
@@ -295,7 +253,7 @@ if __name__ == "__main__":
 
     # logging.basicConfig(level=logging.INFO)
     start = time.time()
-    args = parser.parse_args()
+    args = parse_args(mode="predict")
 
     # if it doesn't make sense, print warning
     if args.use_csv is not None and not args.save_images:
