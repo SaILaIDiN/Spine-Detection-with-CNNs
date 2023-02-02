@@ -80,7 +80,7 @@ python src/spine_detection/predict_mmdet.py \
     --input "data/raw/person1/SR052N1D1day1*.png" \
     --model Cascade_RCNN \
     --param_config lr_0.0005_warmup_None_momentum_None_L2_None \
-    --model_epoch latest.pth \
+    --model_epoch latest \
     --save_images
 ```
 You should replace the `input` flag with the path to the files you want to do inference on. Your path needs to be either a file or a path to multiple files using wildcards `*`.
@@ -100,7 +100,7 @@ python src/spine_detection/tracking_mmdet.py \
     --input "data/raw/person1/SR052N1D1day1*.png"\
     --model Cascade_RCNN \
     --param_config lr_0.0005_warmup_None_momentum_None_L2_None \
-    --model_epoch latest.pth \
+    --model_epoch latest \
     --save_images
 ```
 The basic parameters are the same as with the `predict_mmdet.py` script. However, you have more options to customize the tracker, e.g. which metric should be used for box overlap between different images.
