@@ -263,7 +263,20 @@ if __name__ == "__main__":
         )
         args.save_images = True
 
+    # Decide whether to predict the bboxes or to load from csv
+    if not args.use_csv:
+        model, model_path = load_model(
+            args.model_type, args.use_aug, args.model_epoch, args.param_config, model=args.model, return_path=True
+        )
+        if args.model is None:
+            args.model = model_path.split("/")[-3]
+    else:
+        logger.info("Loading detections from csv file ...")
+        df = pd.read_csv(args.model)
+
     # save_images true/false, output None/path wo images/csvs
+    if args.model is None:
+        logger.error("You need to provide at least the name of your main model using the --model flag.")
     model_name = args.model.split("/")[-1] if args.model.split("/")[-1] != "" else args.model.split("/")[-2]
     if args.output is None:
         args.output = os.path.join("output/prediction/", model_name, args.param_config)
@@ -285,12 +298,6 @@ if __name__ == "__main__":
     print(output_path, model_name, csv_path)
     # Path to the actual model that is used for the object detection.
 
-    # Decide whether to predict the bboxes or to load from csv
-    if not args.use_csv:
-        model = load_model(args.model_type, args.use_aug, args.model_epoch, args.param_config)
-    else:
-        logger.info("Loading detections from csv file ...")
-        df = pd.read_csv(args.model)
     after_loading_model = time.time()
 
     # Make prediction

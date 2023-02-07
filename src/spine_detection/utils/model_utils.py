@@ -1,7 +1,7 @@
 import glob
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional, Tuple
 
 import pkg_resources
 import yaml
@@ -15,7 +15,15 @@ import argparse
 from mmdet.apis import init_detector
 
 
-def load_model(model_type: str, use_aug: bool, model_epoch: str, param_config: str, device: str = "cuda:0"):
+def load_model(
+    model_type: str,
+    use_aug: bool,
+    model_epoch: str,
+    param_config: str,
+    model: Optional[str] = None,
+    device: str = "cuda:0",
+    return_path: bool = False,
+) -> Tuple[Any, str]:
     """Load frozen model
     Args:
         param_config (str): contains a pregenerated string of the tweaked hyperparameters used to navigate through
@@ -27,17 +35,23 @@ def load_model(model_type: str, use_aug: bool, model_epoch: str, param_config: s
     paths_cfg = load_config(cfg_path)
     if model_type is None:
         model_type = "default"
-    checkpoint_file = get_checkpoint_path(model_type, model_folder, use_aug, paths_cfg)
+    if model is None:
+        checkpoint_file = get_checkpoint_path(model_type, model_folder, use_aug, paths_cfg)
+    else:
+        checkpoint_file = f"{model_folder}/{model}"
     config_file = get_config_path(model_type, use_aug, paths_cfg)
     logger.info("Loading model ...")
-
     checkpoint_file = str(Path(checkpoint_file) / param_config / (model_epoch + ".pth"))
+
     # construct checkpoint file name
     # checkpoint_file = os.path.join(checkpoint_file, os.path.join(param_config, model_epoch + ".pth"))
 
     # init a detector
     model = init_detector(config_file, checkpoint_file, device=device)
-    return model
+    if return_path:
+        return model, checkpoint_file
+    else:
+        return model
 
 
 def load_config(config_path: str):
@@ -179,6 +193,12 @@ def parse_args(mode: str = "predict") -> argparse.Namespace:
             "-sp", "--special_term", default="", help="name appendix to store in different train folders"
         )
         parser.add_argument(
+            "-m",
+            "--model",
+            help="Model used for prediction (without frozen_inference_graph.pb!) or folder "
+            "where csv files are saved",
+        )
+        parser.add_argument(
             "-mt",
             "--model_type",
             choices=paths_cfg["model_paths"].keys(),
@@ -195,8 +215,8 @@ def parse_args(mode: str = "predict") -> argparse.Namespace:
         parser.add_argument("-sw", "--seed_weights", default=0, help="seed for initial random weights")
         # The following arguments are primary parameters for optimization
         # if there is no default defined, this parameter will take up the predefined value in the config file
-        parser.add_argument("-lr", "--learning_rate", default=0.0005)
-        parser.add_argument("-me", "--max_epochs", default=10)
+        parser.add_argument("-lr", "--learning_rate", default=0.0005, type=float)
+        parser.add_argument("-me", "--max_epochs", default=10, type=int)
         parser.add_argument("-wu", "--warm_up", default=None, help="learning rate warm up, use None to disable")
         parser.add_argument("-st", "--steps_decay", default=None, help="steps for lr decay")
         parser.add_argument("-mom", "--momentum", default=None, help="only for optimizer SGD")

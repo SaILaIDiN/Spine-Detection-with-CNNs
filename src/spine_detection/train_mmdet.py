@@ -36,7 +36,11 @@ def train_main(args):
 
     if model_type is None:
         model_type = "default"
-    dir_train_checkpoint = get_checkpoint_path(model_type, model_folder, use_aug, paths_cfg)
+
+    if args.model is None:
+        dir_train_checkpoint = get_checkpoint_path(model_type, model_folder, use_aug, paths_cfg)
+    else:
+        dir_train_checkpoint = f"{model_folder}/{args.model}"
     config_file = get_config_path(model_type, use_aug, paths_cfg)
     logger.info("Loading model ...")
 

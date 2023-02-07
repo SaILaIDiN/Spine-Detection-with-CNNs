@@ -78,14 +78,15 @@ If you have downloaded our custom model and just want to do inference, you just 
 ```bash
 python src/spine_detection/predict_mmdet.py \
     --input "data/raw/person1/SR052N1D1day1*.png" \
-    --model Cascade_RCNN \
-    --param_config lr_0.0005_warmup_None_momentum_None_L2_None \
-    --model_epoch latest \
+    --model Cascade_RCNN_model \
+    --model_type Cascade-RCNN \
+    --param_config lr_0.001_warmup_None_momentum_0.6_L2_3e-06_run_1 \
+    --model_epoch epoch_10 \
     --save_images
 ```
 You should replace the `input` flag with the path to the files you want to do inference on. Your path needs to be either a file or a path to multiple files using wildcards `*`.
 
-The model that will be used for inference must be found at the path `tutorial_exps/<model>/<param_config>/<model_epoch>`.
+The model that will be used for inference must be found at the path `tutorial_exps/<model>/<param_config>/<model_epoch>`. The config that is used for loading the model can be found in the `configs/model_config_paths.yaml` file under `model_paths.<model_type>.base_config`. This needs to be adjusted accordingly if you use different configs than provided in the mentioned config file.
 
 Activating the flag `save_images` makes sure that not only the csv output but also the images are saved.
 
@@ -99,7 +100,7 @@ If you are not only interested in detecting spines on single 2D images but in a 
 python src/spine_detection/tracking_mmdet.py \
     --input "data/raw/person1/SR052N1D1day1*.png"\
     --model Cascade_RCNN \
-    --param_config lr_0.0005_warmup_None_momentum_None_L2_None \
+    --param_config lr_0.001_warmup_None_momentum_0.6_L2_3e-06_run_1 \
     --model_epoch latest \
     --save_images
 ```
@@ -112,7 +113,7 @@ After having tracked the dendritic spines over 3D stacks, you can evaluate the m
 ```bash
 python src/spine_detection/evaluate_tracking_mmdet.py \
     --model Cascade_RCNN \
-    --param_config lr_0.0005_warmup_None_momentum_None_L2_None \
+    --param_config lr_0.001_warmup_None_momentum_0.6_L2_3e-06_run_1 \
     --tracking data_tracking_default_aug_False_epoch_1_theta_0.5_delta_0.5_Test.csv \
     --gt_file output/tracking/GT/data_tracking_max_wo_offset.csv
 ```
@@ -124,11 +125,12 @@ For every kind of training you need to prepare your data correctly. Your data sh
 After having downloaded our custom models you can continue training them with your own data with the following command:
 ```bash
 python src/spine_detection/train_mmdet.py \
-    --model_type default \
-    --checkpoint lr_0.0005_warmup_None_momentum_None_L2_None/latest.pth \
+    --model Cascade_RCNN_model \
+    --model_type Cascade-RCNN \
+    --checkpoint lr_0.001_warmup_None_momentum_0.6_L2_3e-06_run_1/epoch_10.pth \
     --resume
 ```
-In that case the script is searching for a model file (`.pth`) inside `tutorial_exps/<model_name>/<checkpoint>`. `model_name` is the value of `model_paths.<model_type>` in the config file `configs/model_config_paths.yaml`. If you have used our `download_data.sh` script, the models should already have the correct paths.
+In that case the script is searching for a model file (`.pth`) inside `tutorial_exps/<model_name>/<checkpoint>`. If the `model` flag is provided, `model_name=model`. Otherwise `model_name` is the value of `model_paths.<model_type>.base_checkpoint` in the config file `configs/model_config_paths.yaml` appended by `no_data_augmentation` or `data_augmentation` depending if the `--use_aug` flag is added. However, if you have used our `download_data.sh` script, the models should already have the correct paths.
 
 ### Train on pretrained model from mmdetection modelzoo
 If you want to train on any pretrained model you first need to choose which pretrained model you want to use and download it into `references/mmdetection/checkpoint`. You now have downloaded a model with name `<model_type>_<param_config>_<date>-<identifier>.pth`. If you can find any `model_paths` with `base_config` equal to `<model>_<param_config>_coco` in `configs/model_config_paths.yaml` it's fine but if not you need to create a new config file `cfg_file=references/mmdetection/configs/<model>/<model>_<param_config>_coco_SPINE.py`. The config file should look like the the corresponding python file without the `SPINE` addition.

@@ -38,7 +38,9 @@ def tracking_main(args):
 
     # save_folder: folder where tracking csv file will be saved
     # folder: name of folder which is used in csv file for generating filename-column
-    model_name = args.model.split("/")[-1] if args.model.split("/")[-1] != "" else args.model.split("/")[-2]
+    model_name = (
+        args.model_type
+    )  # args.model.split("/")[-1] if args.model.split("/")[-1] != "" else args.model.split("/")[-2]
     if args.output is None:
         args.output = os.path.join("output/tracking/", model_name, args.param_config)
     if not os.path.exists(args.output):
