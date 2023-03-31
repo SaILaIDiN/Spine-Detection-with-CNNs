@@ -1,78 +1,140 @@
 import argparse
-import os
-import glob
-import re
 import datetime
-from pathlib import Path
+import glob
+import os
+import re
 from collections import OrderedDict
-from utils_FV import calc_metric
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
-from predict_mmdet import load_model
 
+from spine_detection.utils.data_utils import calc_metric
+from spine_detection.utils.model_utils import load_model
 
-parser = argparse.ArgumentParser(description='Evaluate model performance compared to groundtruth labels',
-                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser = argparse.ArgumentParser(
+    description="Evaluate model performance compared to groundtruth labels",
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+)
 
 # Positional arguments
 # Mandatory
-parser.add_argument('-gtf', '--gtfolder', dest='gtFolder', default='',
-                    help='either list of folders for each GT you want to look at or one folder '
-                         'and a list of gt_file, comma separated')
-parser.add_argument('-det', '--detfolder', dest='detFolder', default='',
-                    help='folder containing your detected tracking file')
+parser.add_argument(
+    "-gtf",
+    "--gtfolder",
+    dest="gtFolder",
+    default="",
+    help="either list of folders for each GT you want to look at or one folder "
+    "and a list of gt_file, comma separated",
+)
+parser.add_argument(
+    "-det",
+    "--detfolder",
+    dest="detFolder",
+    help="folder containing your detected tracking file",
+)
 # Optional
-parser.add_argument('-ot', '--overlap-threshold', dest='overlap_threshold', type=float, default=0.5, metavar='',
-                    help='IoM threshold, defines when a prediction box and a GT box overlap enough to be matched.'
-                         'Impacts the number of total overlaps shown in the evaluation print statement.')
-parser.add_argument('-dt', '--detection-threshold', dest='delta_eval', default=0.5, metavar='',
-                    help='Detection threshold for real detection, defines which spines will be tracked.'
-                         'Same parameter as delta in tracking. But this one is to evaluate the tracking files after '
-                         'using a certain delta as if it was a different threshold value.'
-                         'In other words, evaluate the data from delta_track as if it was tracked by delta_eval.')
-parser.add_argument('-t', '--delta', dest='delta_track',  type=float, default=0.5,
-                    help='Threshold for delta (detection threshold, score level).'
-                         'Detection threshold for real detection, defines which spines will be tracked.'
-                         'Impacts the number of total tracked spines shown in the evaluation print statement.'
-                         'Also impacts the total number of overlaps as a secondary consequence.')
-parser.add_argument('-th', '--theta',
-                    help='Threshold for theta (detection similarity threshold, IOM level)', default=0.5, type=float)
-parser.add_argument('-m', dest='metric', default='iom', metavar='',
-                    help='used metric. Options are \'iom\' or \'iou\'')
-parser.add_argument('-tr', '--tracking', default='',
-                    help='path of used tracking file')
-parser.add_argument('-gt', dest='gt_file', default='output/tracking/GT/data_tracking_max_wo_offset.csv',
-                    help='given a list of gtFolders, name of gt_file is enough, '
-                         'otherwise a list of gt_files must be given, comma separated')
-parser.add_argument('-sp', '--savepath', dest='savePath', metavar='',
-                    help='folder where the plots are saved')
-parser.add_argument('-sn', '--savename', dest='saveName', default='',
-                    help='name of results file')
-parser.add_argument('-ow', '--overwrite', action='store_true',
-                    help='whether to overwrite the results of the previous iteration or just append it')
+parser.add_argument(
+    "-ot",
+    "--overlap-threshold",
+    dest="overlap_threshold",
+    type=float,
+    default=0.5,
+    metavar="",
+    help="IoM threshold, defines when a prediction box and a GT box overlap enough to be matched."
+    "Impacts the number of total overlaps shown in the evaluation print statement.",
+)
+parser.add_argument(
+    "-dt",
+    "--detection-threshold",
+    dest="delta_eval",
+    default=0.5,
+    metavar="",
+    help="Detection threshold for real detection, defines which spines will be tracked."
+    "Same parameter as delta in tracking. But this one is to evaluate the tracking files after "
+    "using a certain delta as if it was a different threshold value."
+    "In other words, evaluate the data from delta_track as if it was tracked by delta_eval.",
+)
+parser.add_argument(
+    "-t",
+    "--delta",
+    dest="delta_track",
+    type=float,
+    default=0.5,
+    help="Threshold for delta (detection threshold, score level)."
+    "Detection threshold for real detection, defines which spines will be tracked."
+    "Impacts the number of total tracked spines shown in the evaluation print statement."
+    "Also impacts the total number of overlaps as a secondary consequence.",
+)
+parser.add_argument(
+    "-th", "--theta", help="Threshold for theta (detection similarity threshold, IOM level)", default=0.5, type=float
+)
+parser.add_argument(
+    "-m",
+    "--model",
+    help="Model used for prediction (without frozen_inference_graph.pb!) or folder " "where csv files are saved",
+)
+parser.add_argument("-met", "--metric", default="iom", metavar="", help="used metric. Options are 'iom' or 'iou'")
+parser.add_argument("-tr", "--tracking", default="", help="path of used tracking file")
+parser.add_argument(
+    "-gt",
+    "--gt_file",
+    default="output/tracking/GT/data_tracking_max_wo_offset.csv",
+    help="given a list of gtFolders, name of gt_file is enough, "
+    "otherwise a list of gt_files must be given, comma separated",
+)
+parser.add_argument("-sp", "--savepath", dest="savePath", metavar="", help="folder where the plots are saved")
+parser.add_argument("-sn", "--savename", dest="saveName", default="", help="name of results file")
+parser.add_argument(
+    "-ow",
+    "--overwrite",
+    action="store_true",
+    help="whether to overwrite the results of the previous iteration or just append it",
+)
 # Optional, for Advanced Behavioral Analysis
-parser.add_argument('-sf', '--show-faults', dest='show_faults', default='False',
-                    help='Boolean value, to select analysis of locations for false positives and missing GTs.')
+parser.add_argument(
+    "-sf",
+    "--show-faults",
+    dest="show_faults",
+    default="False",
+    help="Boolean value, to select analysis of locations for false positives and missing GTs.",
+)
 # parser.add_argument('-fbp', '--faulty-boxes-path', dest='faulty_boxes_path', default='',
 #                     help='Path where the images containing boxes of false positives and missing GTs are stored.')
 # For load_model() and for path/file construction in automated evaluation
-parser.add_argument('-mt', '--model_type',
-                    help='decide which model to use as config and checkpoint file. '
-                         'use one of [Cascade_RCNN, GFL, VFNet, Def_DETR]')
-parser.add_argument('-ua', '--use-aug', default='False',
-                    help='decide to load the config file with or without data augmentation')
-parser.add_argument('-me', '--model_epoch', default='epoch_1',
-                    help='decide the epoch number for the model weights. use the format of the default value')
-parser.add_argument('-pc', '--param_config', default='',
-                    help='string that contains all parameters intentionally tweaked during optimization')
-parser.add_argument('-im', '--input_mode', default='Test',
-                    help='defines the proper way of loading either train, val or test data as input')
+parser.add_argument(
+    "-mt",
+    "--model_type",
+    help="decide which model to use as config and checkpoint file. " "use one of [Cascade_RCNN, GFL, VFNet, Def_DETR]",
+)
+parser.add_argument(
+    "-ua", "--use-aug", action="store_true", help="decide to load the config file with or without data augmentation"
+)
+parser.add_argument(
+    "-me",
+    "--model_epoch",
+    default="epoch_1",
+    help="decide the epoch number for the model weights. use the format of the default value",
+)
+parser.add_argument(
+    "-pc",
+    "--param_config",
+    default="",
+    help="string that contains all parameters intentionally tweaked during optimization",
+)
+parser.add_argument(
+    "-im",
+    "--input_mode",
+    default="Test",
+    help="defines the proper way of loading either train, val or test data as input",
+)
 
 
 # calculates centroids from tracked csv-file by averaging spines over all there occurrences
-def calc_centroids_given_tracking(tracking_filename: str, reg_expr_for_filename: str = "Test",
-                                  det_thresh: float = 0.5) -> OrderedDict:
-    """ Calculate centroids for specific images only
+def calc_centroids_given_tracking(
+    tracking_filename: str, reg_expr_for_filename: str = "Test", det_thresh: float = 0.5
+) -> OrderedDict:
+    """Calculate centroids for specific images only
      Args:
         tracking_filename (str): path to already tracked file
         reg_expr_for_filename (str, optional): regular expression to get only the images you want to evaluate on.
@@ -88,7 +150,7 @@ def calc_centroids_given_tracking(tracking_filename: str, reg_expr_for_filename:
     centroids = OrderedDict()
 
     if reg_expr_for_filename == "Test":
-        reg_expr_for_filename = '(.*)SR052N1D1day1(.*)'
+        reg_expr_for_filename = "(.*)SR052N1D1day1(.*)"
         re_matching = re.compile(reg_expr_for_filename)
     elif reg_expr_for_filename == "Train" or reg_expr_for_filename == "Val":
         pass  # not elegant, but used symbolically
@@ -101,7 +163,7 @@ def calc_centroids_given_tracking(tracking_filename: str, reg_expr_for_filename:
         if reg_expr_for_filename == "Train" or reg_expr_for_filename == "Val":
             real_data = spine_data
         else:
-            real_data = spine_data[spine_data.apply(lambda row: re_matching.match(row['filename']) is not None, axis=1)]
+            real_data = spine_data[spine_data.apply(lambda row: re_matching.match(row["filename"]) is not None, axis=1)]
         # "SR052N1D1day1" in row['filename']
         if len(real_data) == 0:
             continue
@@ -136,14 +198,14 @@ def evaluate_tracking_main(args):
     # Arguments validation
     errors = []
     # Groundtruth folder
-    all_gt_folder = args.gtFolder.split(',')
-    all_gt_files = args.gt_file.split(',')
+    all_gt_folder = args.gtFolder.split(",")
+    all_gt_files = args.gt_file.split(",")
     final_gt_paths = []
 
     if len(all_gt_folder) == 0:
-        all_gt_folder = ['']
+        all_gt_folder = [""]
     if len(all_gt_files) == 0:
-        all_gt_files = ['']
+        all_gt_files = [""]
     if len(all_gt_folder) == 1 and len(all_gt_files) == 1:
         final_gt_paths.append(os.path.join(all_gt_folder[0], all_gt_files[0]))
     elif len(all_gt_folder) > 1 and len(all_gt_files) == 1:
@@ -156,29 +218,46 @@ def evaluate_tracking_main(args):
         for i in range(len(all_gt_files)):
             final_gt_paths.append(os.path.join(all_gt_folder[i], all_gt_files[i]))
     else:
-        raise ValueError(f"The given combination of GT Folders {args.gtFolder} and Gt files {args.gt_file} "
-                         f"doesn't work. Either both lists have the same length or "
-                         f"one has arbitrary length while the other has length 1")
+        raise ValueError(
+            f"The given combination of GT Folders {args.gtFolder} and Gt files {args.gt_file} "
+            f"doesn't work. Either both lists have the same length or "
+            f"one has arbitrary length while the other has length 1"
+        )
 
     nr_gts = len(final_gt_paths)
     for i in range(nr_gts):
         if not os.path.exists(final_gt_paths[i]):
             raise ValueError(f"GT Folder {final_gt_paths[i]} doesn't exist.")
+    if args.detFolder is None:
+        args.detFolder = os.path.join("output/tracking/", args.model)
     if not os.path.exists(args.detFolder):
         raise ValueError(f"Det Folder {args.detFolder} doesn't exist.")
     else:
         detFolder = args.detFolder
-    if args.tracking == '':
+    if args.tracking == "":
         raise ValueError(f"It is necessary to provide a tracking file for evaluation.")
     # Construct the specific tracking file name if we do automated evaluations (i.e. in auto_eval.py)
-    if args.tracking == 'AUTO':
-        args.tracking = 'data_tracking_' + args.model_type + '_aug_' + args.use_aug + '_' + args.model_epoch + \
-                        '_theta_' + str(args.theta) + '_delta_' + str(args.delta_track) + '_' + args.input_mode + '.csv'
+    if args.tracking == "AUTO":
+        args.tracking = (
+            "data_tracking_"
+            + args.model_type
+            + "_aug_"
+            + args.use_aug
+            + "_"
+            + args.model_epoch
+            + "_theta_"
+            + str(args.theta)
+            + "_delta_"
+            + str(args.delta_track)
+            + "_"
+            + args.input_mode
+            + ".csv"
+        )
     # Validate savePath
     # Create directory to save results
     savePath = args.savePath
     if savePath is None:
-        savePath = 'results'
+        savePath = "results"
     if not os.path.exists(savePath):
         os.makedirs(savePath)
     real_det_thresh = float(args.delta_eval)
@@ -190,16 +269,20 @@ def evaluate_tracking_main(args):
     for j in range(nr_gts):
         centroids1 = calc_centroids_given_tracking(final_gt_paths[j], reg_expr_for_filename=args.input_mode)
         centroids2 = calc_centroids_given_tracking(
-            os.path.join(detFolder, os.path.join(args.param_config, args.tracking)), det_thresh=args.delta_eval,
-            reg_expr_for_filename=args.input_mode)
+            os.path.join(detFolder, os.path.join(args.param_config, args.tracking)),
+            det_thresh=args.delta_eval,
+            reg_expr_for_filename=args.input_mode,
+        )
         # print("CENTROIDS1 ", centroids1)
 
         df_GT = pd.DataFrame(centroids1, columns=centroids1.keys()).T
-        df_GT = df_GT.rename(columns={0: "cX", 1: "cY", 2: "w", 3: "h", 4: "raw_box", 5: "score", 6: "filename",
-                                      7: "z_min", 8: "z_max"})
+        df_GT = df_GT.rename(
+            columns={0: "cX", 1: "cY", 2: "w", 3: "h", 4: "raw_box", 5: "score", 6: "filename", 7: "z_min", 8: "z_max"}
+        )
         df_PRED = pd.DataFrame(centroids2, columns=centroids2.keys()).T
-        df_PRED = df_PRED.rename(columns={0: "cX", 1: "cY", 2: "w", 3: "h", 4: "raw_box", 5: "score", 6: "filename",
-                                          7: "z_min", 8: "z_max"})
+        df_PRED = df_PRED.rename(
+            columns={0: "cX", 1: "cY", 2: "w", 3: "h", 4: "raw_box", 5: "score", 6: "filename", 7: "z_min", 8: "z_max"}
+        )
 
         nr_gt = len(centroids1)
         nr_det = len(centroids2)
@@ -212,7 +295,7 @@ def evaluate_tracking_main(args):
         both_spines = OrderedDict()
         for filename, spine_data in df_GT.groupby("filename"):
             # print("GT_subdata", spine_data)
-            od_GT = spine_data.to_dict(into=OrderedDict, orient='index')
+            od_GT = spine_data.to_dict(into=OrderedDict, orient="index")
             od_GT_tmp = OrderedDict()
             for key in od_GT.keys():
                 tuple_list_sec_val = [tuple_i[1] for tuple_i in list(od_GT[key].items())]
@@ -221,9 +304,9 @@ def evaluate_tracking_main(args):
             # print("OD_GT_subdata", od_GT)
             od_GT = od_GT_tmp
 
-            spine_data_PRED = df_PRED[df_PRED["filename"].str.contains(filename.split('/')[-1])]
+            spine_data_PRED = df_PRED[df_PRED["filename"].str.contains(filename.split("/")[-1])]
             # print("PRED_subdata", spine_data_PRED)
-            od_PRED = spine_data_PRED.to_dict(into=OrderedDict, orient='index')
+            od_PRED = spine_data_PRED.to_dict(into=OrderedDict, orient="index")
             od_PRED_tmp = OrderedDict()
             for key in od_PRED.keys():
                 tuple_list_sec_val = [tuple_i[1] for tuple_i in list(od_PRED[key].items())]
@@ -235,8 +318,10 @@ def evaluate_tracking_main(args):
             # boxes1 are GT, boxes2 are like Predictions
             # -> compare each box2 vs all boxes of boxes1
             for key in od_PRED.keys():
-                all_dist = [(key, other_key, calc_metric(od_PRED[key], od_GT[other_key], args.metric))
-                            for other_key in od_GT.keys()]
+                all_dist = [
+                    (key, other_key, calc_metric(od_PRED[key], od_GT[other_key], args.metric))
+                    for other_key in od_GT.keys()
+                ]
                 all_dist.sort(key=lambda x: x[2], reverse=True)  # sort by metric (here: IoM)
 
                 # correct centroid with highest IoM
@@ -256,8 +341,19 @@ def evaluate_tracking_main(args):
             # transfer OrderedDict into Dataframe (for easier grouping by filename)
             n_GT = len(centroids1.keys())
             df_GT = pd.DataFrame(centroids1, columns=centroids1.keys()).T
-            df_GT = df_GT.rename(columns={0: "cX", 1: "cY", 2: "w", 3: "h", 4: "raw_box", 5: "score", 6: "filename",
-                                          7: "z_min", 8: "z_max"})
+            df_GT = df_GT.rename(
+                columns={
+                    0: "cX",
+                    1: "cY",
+                    2: "w",
+                    3: "h",
+                    4: "raw_box",
+                    5: "score",
+                    6: "filename",
+                    7: "z_min",
+                    8: "z_max",
+                }
+            )
 
             for filename, spine_data in df_GT.groupby("filename"):
 
@@ -271,10 +367,10 @@ def evaluate_tracking_main(args):
 
                 if args.input_mode == "Test":
                     raw_img_path = "data/raw/test_data"  # subset of person1
-                    img_input_path = filename.split('/')[-1]
+                    img_input_path = filename.split("/")[-1]
                     img_input_path = os.path.join(raw_img_path, img_input_path)
                 elif args.input_mode == "Train" or args.input_mode == "Val":
-                    img_input_path = filename.split('/')[-1]
+                    img_input_path = filename.split("/")[-1]
                     img_input_path = glob.glob("data/raw/person*/" + img_input_path)[0]
                     # NOTE: The glob.glob solution to find the correct path is only safe as long as each individual
                     # image is labeled by only a single person! So it is temporary for our current dataset.
@@ -282,10 +378,17 @@ def evaluate_tracking_main(args):
                     print("Correct filename for input images is required!")
                     break
                 output_path = "output/tracking/BehaviorAnalysis/images_mmdet_GT" + f"_{args.input_mode}"
-                orig_name = img_input_path.split('/')[-1].split('\\')[-1]
+                orig_name = img_input_path.split("/")[-1].split("\\")[-1]
                 img_output_path = os.path.join(output_path, orig_name)
-                model.show_result(img_input_path, boxes_scores, bbox_color="green", score_thr=0.5, font_size=3,
-                                  thickness=1, out_file=img_output_path)
+                model.show_result(
+                    img_input_path,
+                    boxes_scores,
+                    bbox_color="green",
+                    score_thr=0.5,
+                    font_size=3,
+                    thickness=1,
+                    out_file=img_output_path,
+                )
             # # Get false positive prediction boxes
             TP_keys = list(both_spines.keys())  # True Positives
             P_keys = list(centroids2.keys())  # All Positives
@@ -294,8 +397,19 @@ def evaluate_tracking_main(args):
                 del centroids2[key]
             # transfer OrderedDict into Dataframe (for easier grouping by filename)
             df_PRED = pd.DataFrame(centroids2, columns=centroids2.keys()).T
-            df_PRED = df_PRED.rename(columns={0: "cX", 1: "cY", 2: "w", 3: "h", 4: "raw_box", 5: "score", 6: "filename",
-                                              7: "z_min", 8: "z_max"})
+            df_PRED = df_PRED.rename(
+                columns={
+                    0: "cX",
+                    1: "cY",
+                    2: "w",
+                    3: "h",
+                    4: "raw_box",
+                    5: "score",
+                    6: "filename",
+                    7: "z_min",
+                    8: "z_max",
+                }
+            )
 
             for filename, spine_data in df_PRED.groupby("filename"):
 
@@ -309,10 +423,10 @@ def evaluate_tracking_main(args):
 
                 if args.input_mode == "Test":
                     raw_img_path = "data/raw/test_data"  # subset of person1
-                    img_input_path = filename.split('/')[-1]
+                    img_input_path = filename.split("/")[-1]
                     img_input_path = os.path.join(raw_img_path, img_input_path)
                 elif args.input_mode == "Train" or args.input_mode == "Val":
-                    img_input_path = filename.split('/')[-1]
+                    img_input_path = filename.split("/")[-1]
                     img_input_path = glob.glob("data/raw/person*/" + img_input_path)[0]
                     # NOTE: The glob.glob solution to find the correct path is only safe as long as each individual
                     # image is labeled by only a single person! So it is temporary for our current dataset.
@@ -320,11 +434,18 @@ def evaluate_tracking_main(args):
                     print("Correct filename for input images is required!")
                     break
                 output_path = "output/tracking/BehaviorAnalysis/images_mmdet_PRED" + f"_{args.input_mode}"
-                orig_name = img_input_path.split('/')[-1].split('\\')[-1]
+                orig_name = img_input_path.split("/")[-1].split("\\")[-1]
                 img_output_path = os.path.join(output_path, orig_name)
-                model.show_result(img_input_path, boxes_scores, bbox_color="red", score_thr=0.5, font_size=3,
-                                  thickness=1, out_file=img_output_path)
-        gt_file_name_tmp = final_gt_paths[j].split('/')[-1]
+                model.show_result(
+                    img_input_path,
+                    boxes_scores,
+                    bbox_color="red",
+                    score_thr=0.5,
+                    font_size=3,
+                    thickness=1,
+                    out_file=img_output_path,
+                )
+        gt_file_name_tmp = final_gt_paths[j].split("/")[-1]
         if "min" in gt_file_name_tmp:
             gt_version = "min"
         elif "maj" in gt_file_name_tmp:
@@ -342,34 +463,48 @@ def evaluate_tracking_main(args):
     precision = np.array(total_both_spines) / total_spines2
     recall = np.array(total_both_spines) / total_spines
     fscore = list(precision * recall * 2 / (precision + recall))
-    if args.saveName == 'AUTO':  # same usage of 'AUTO' as for args.tracking
-        filename = os.path.join(savePath, args.model_type + '_aug_' + args.use_aug)
+    if args.saveName == "AUTO":  # same usage of 'AUTO' as for args.tracking
+        filename = os.path.join(savePath, args.model_type + "_aug_" + args.use_aug)
         filename = os.path.join(filename, args.param_config)
         Path(filename).mkdir(parents=True, exist_ok=True)
-        filename = os.path.join(filename, args.model_type + '_aug_' + args.use_aug +
-                                '_theta_' + str(args.theta) + '_delta_track_' + str(args.delta_track) +
-                                '_delta_eval_' + str(args.delta_eval) + '_' + args.input_mode + '_eval.csv')
-    elif args.saveName != '':
-        filename = os.path.join(savePath, args.saveName + '.csv')
+        filename = os.path.join(
+            filename,
+            args.model_type
+            + "_aug_"
+            + args.use_aug
+            + "_theta_"
+            + str(args.theta)
+            + "_delta_track_"
+            + str(args.delta_track)
+            + "_delta_eval_"
+            + str(args.delta_eval)
+            + "_"
+            + args.input_mode
+            + "_eval.csv",
+        )
+    elif args.saveName != "":
+        filename = os.path.join(savePath, args.saveName + ".csv")
     else:
-        filename = os.path.join(savePath, detFolder.split('/')[-1] + '.csv')
+        filename = os.path.join(savePath, detFolder.split("/")[-1] + ".csv")
 
     if os.path.exists(filename):
         df = pd.read_csv(filename)
     else:
         df = pd.DataFrame()
-    new_df = pd.DataFrame({
-        'nr_detected': total_spines2,
-        'nr_gt': total_spines,
-        'nr_gt_detected': total_both_spines,
-        'precision': precision,
-        'recall': recall,
-        'fscore': fscore,
-        'detection_threshold': real_det_thresh,
-        'timestamp': str(datetime.datetime.now()),
-        'epoch': args.model_epoch.split('_')[-1],
-        'gt_version': all_gt_versions
-    })
+    new_df = pd.DataFrame(
+        {
+            "nr_detected": total_spines2,
+            "nr_gt": total_spines,
+            "nr_gt_detected": total_both_spines,
+            "precision": precision,
+            "recall": recall,
+            "fscore": fscore,
+            "detection_threshold": real_det_thresh,
+            "timestamp": str(datetime.datetime.now()),
+            "epoch": args.model_epoch.split("_")[-1],
+            "gt_version": all_gt_versions,
+        }
+    )
     for i in range(len(precision)):
         print(f"{' Precision ' + str(i + 1):<13s}|          |{precision[i]:^10f}|")
     for i in range(len(recall)):
@@ -378,8 +513,20 @@ def evaluate_tracking_main(args):
         print(f"{' F-Score ' + str(i + 1):<13s}|          |{fscore[i]:^10f}|")
 
     # sort columns
-    new_df = new_df[['timestamp', 'epoch', 'gt_version', 'detection_threshold', 'fscore', 'precision', 'recall',
-                     'nr_detected', 'nr_gt', 'nr_gt_detected']]
+    new_df = new_df[
+        [
+            "timestamp",
+            "epoch",
+            "gt_version",
+            "detection_threshold",
+            "fscore",
+            "precision",
+            "recall",
+            "nr_detected",
+            "nr_gt",
+            "nr_gt_detected",
+        ]
+    ]
 
     if args.show_faults != "True":  # deactivate storing the evaluation of tracking when doing error analysis
         if args.overwrite:
@@ -389,6 +536,7 @@ def evaluate_tracking_main(args):
             together.to_csv(filename, index=False)
     else:
         print("Storage of tracking evaluation is deactivated during error analysis!")
+
 
 if __name__ == "__main__":
     args = parser.parse_args()
