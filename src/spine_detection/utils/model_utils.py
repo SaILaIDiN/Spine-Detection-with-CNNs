@@ -184,6 +184,7 @@ def parse_args(mode: str = "predict") -> argparse.Namespace:
         "tracking": "Track spines in the whole stack",
     }
     parser = argparse.ArgumentParser(description=desc[mode], formatter_class=CustomHelpFormatter)
+    parser.add_argument("-ll", "--log_level", default="info", help="Log level one of ['debug', 'info', 'warning', 'error']")
 
     if mode == "train":
         cfg_path = pkg_resources.resource_filename("spine_detection", "configs/model_config_paths.yaml")
@@ -326,5 +327,12 @@ def parse_args(mode: str = "predict") -> argparse.Namespace:
                 default="Test",
                 help="defines the proper way of loading either train, val or test data as input",
             )
+    args = parser.parse_args()
+    log_dict = {"debug": logging.DEBUG, "info": logging.INFO, "warning": logging.WARNING, "error": logging.ERROR}
+    if args.log_level in log_dict:
+        args.log_level = log_dict[args.log_level]
+    else:
+        args.log_level = logging.INFO
+        logger.warning(f"Log level {args.log_level} is not available, using INFO level by default.")
 
-    return parser.parse_args()
+    return args

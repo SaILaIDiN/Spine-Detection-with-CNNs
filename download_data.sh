@@ -35,5 +35,4 @@ cd ../../
 # remove all temporary files
 echo "Cleaning up..."
 rm -rf .tmp
-rm data.zip cascade_rcnn.zip faster_rcnn.zip
 echo "Finished"
