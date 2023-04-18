@@ -54,11 +54,7 @@ def load_model(
     # checkpoint_file = os.path.join(checkpoint_file, os.path.join(param_config, model_epoch + ".pth"))
 
     # init a detector
-    # logger.info("Before loading")
-    print("Before loading")
     model = init_detector(config_file, checkpoint_file, device=device)
-    print("After loading")
-    # logger.info("After loading")
     if return_path:
         return model, checkpoint_file
     else:
@@ -200,7 +196,7 @@ def parse_args(mode: str = "predict") -> argparse.Namespace:
     }
     parser = argparse.ArgumentParser(description=desc[mode], formatter_class=CustomHelpFormatter)
     parser.add_argument("-ll", "--log_level", default="info", help="Log level one of ['debug', 'info', 'warning', 'error']")
-    parser.add_argument("--device", default="cuda:0", help="Device used for model inference and training, either 'cpu' or 'cuda:<nr>'")
+    parser.add_argument("--device", default="cuda:0", help="Device used for model inference and training, either 'cpu' or 'cuda:<gpu-id>'")
 
     if mode == "train":
         cfg_path = pkg_resources.resource_filename("spine_detection", "configs/model_config_paths.yaml")

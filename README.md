@@ -14,19 +14,24 @@ Structure of this guide:
 
 ## Installation
 
+Using a CUDA enabled GPU is recommended to get fast prediction times and converge fast during training. However all the code works with only CPU as well you just need to choose the `cpu` versions for the installation and add `--device cpu` on all python commands described in the sections below.
 Some packages are listed in the `requirements.txt` file. To install all necessary packages correctly using pip, simply run
 
 ```bash
 ./install_requirements.sh
+OR
+./install_requirements_cpu.sh
 ```
 
 in Linux bash or
 
 ```bash
 install_requirements.bat
+OR
+install_requirements_cpu.bat
 ```
 
-in Windows command line.
+in Windows command line. Note that this may take a few minutes, especially collecting, compiling and installing mmcv-full may take more than ten minutes, so please be patient.
 
 The current best models mentioned in [this paper](https://www.biorxiv.org/content/10.1101/2023.01.08.522220.full.pdf) as well as training and evaluation images and labels are not saved in GitHub directly, but are available for download. All the data can automatically be downloaded and extracted into the correct folders using the Linux shell script
 
@@ -45,6 +50,10 @@ If you like to have more control over the data, you can download
 - the images and labels [here](https://drive.google.com/uc?id=1yi2tQ-0oJhElaSUDFn_UpZ-bUO0bH3_N)
 - the Cascade RCNN model [here](https://drive.google.com/uc?id=1eLeqafL4UPM3-uPSV37SvEo00ONM-1tD)
 - and the Faster RCNN model [here](https://drive.google.com/uc?id=1OnbBMdaOsc9-TPFkOTr4geCNLT5Dv7w3).
+
+Generally all python commands described in the sections below have the optional parameter `--device` which determines the device on which the prediction, training or model evaluation happens (`cpu` or `cuda:<gpu-id>`) and the optional parameter `--log_level` which determines the log level of the output (`debug`, `info`, `warning` or `error`).
+
+By default `--device cuda:0` and `--log_level info` are used.
 
 ## Folder structure
 
@@ -123,7 +132,7 @@ The model that will be used for prediction must be found at the path `tutorial_e
 
 The config that is used for loading the model can be found in the `configs/model_config_paths.yaml` file under `model_paths.<model_type>.base_config`. This needs to be adjusted accordingly if you use different configs than provided in the mentioned config file.
 
-<font color="red">**Note:** Be careful with the `--model` and `--model_type` flag. For using the default Faster RCNN model, you need to set `--model Faster_RCNN_data_augmentation` but `--model_type Faster-RCNN` according to the config file `configs/model_configs_paths.yaml`.</font>
+**Note: Be careful with the `--model` and `--model_type` flag. For using the default Faster RCNN model, you need to set `--model Faster_RCNN_data_augmentation` but `--model_type Faster-RCNN` according to the config file `configs/model_configs_paths.yaml`.**
 
 Activating the flag `save_images` makes sure that not only the csv output but also the images are saved.
 
@@ -227,3 +236,7 @@ More command line parameters as the number of epochs or the learning rate are av
 **Q: There are no detections and I get the warning `missing key in source state_dict: ...` or `unexpected key in source state_dict: ...`**
 
 **A:** This means the model weights from the `.pth` file cannot be correctly matched to the expected model weights. This probably happens because the `--model_type` flag does not fit for the loaded model weights. The config file `configs/model_config_paths.yaml` shows which model type should be entered so that the correct weights are expected. For more details see [here](#predictioninference).
+
+**Q: The installation is stuck in the `Building wheel for mmcv-full (setup.py) ...` phase**
+
+**A:** For certain python versions there is no pre-compiled version of `mmcv` available, so it needs to be downloaded, compiled and installed. This may take more than ten minutes, so please be patient.

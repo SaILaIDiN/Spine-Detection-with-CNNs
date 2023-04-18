@@ -47,7 +47,7 @@ def prepare_data():
             new_filenames = ["data_train.csv", "data_val.csv", "data_test.csv"]
             base_folder = "data/default_annotations"
             for (rename_file, new_filename) in zip(rename_files, new_filenames):
-                shutil.move(os.path.join(base_folder, rename_file), os.path.join(base_folder, new_filename))
+                shutil.copyfile(os.path.join(base_folder, rename_file), os.path.join(base_folder, new_filename))
         print("Finished with moving.")
     print("Cleaning up")
     if os.path.exists(".tmp"):

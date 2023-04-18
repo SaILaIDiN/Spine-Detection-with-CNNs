@@ -120,7 +120,7 @@ def train_main(args):
     # at the final config used for training
     logger.info(f"Config:\n{cfg.pretty_text}")
 
-    cfg.device = args.device
+    cfg.device = args.device.split(':')[0] # either 'cpu' or 'cuda', so 'cuda:<gpu-id>' needs to be reduced to 'cuda'
     # Build dataset
     datasets = [build_dataset(cfg.data.train)]
     if len(cfg.workflow) == 2:
