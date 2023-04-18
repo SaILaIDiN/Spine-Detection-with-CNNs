@@ -1,7 +1,7 @@
 import glob
 import logging
 from pathlib import Path
-from typing import Any, Optional, Tuple
+from typing import Any, Optional, Tuple, Union
 
 import pkg_resources
 import yaml
@@ -23,11 +23,18 @@ def load_model(
     model: Optional[str] = None,
     device: str = "cuda:0",
     return_path: bool = False,
-) -> Tuple[Any, str]:
-    """Load frozen model
-    Args:
-        param_config (str): contains a pregenerated string of the tweaked hyperparameters used to navigate through
-                            model folders
+) -> Union[Tuple[Any, str], str]:
+    """Loads frozen detector
+
+    :param model_type: one of the available model types
+    :param use_aug: flag if augmentation was used during training
+    :param model_epoch: Name of model epoch that was frozen (e.g. epoch_10.pth)
+    :param param_config: Name of the param_config which should be the same as the folder the frozen model is in
+    :param model: Optional name of the model folder. If not provided it is automatically generated from the
+        previous arguments
+    :param device: Device where the model should be loaded
+    :param return_path: flag if the path to the checkpoint should be returned as well
+    :return: path to model checkpoint
     """
 
     model_folder = "tutorial_exps"
@@ -47,15 +54,23 @@ def load_model(
     # checkpoint_file = os.path.join(checkpoint_file, os.path.join(param_config, model_epoch + ".pth"))
 
     # init a detector
+    # logger.info("Before loading")
+    print("Before loading")
     model = init_detector(config_file, checkpoint_file, device=device)
+    print("After loading")
+    # logger.info("After loading")
     if return_path:
         return model, checkpoint_file
     else:
         return model
 
 
-def load_config(config_path: str):
+def load_config(config_path: str) -> CN:
+    """Load config from config path
 
+    :param config_path: path to config file
+    :return: config as a CfgNode Object
+    """
     config = None
     with open(config_path, "r") as f:
         if config_path.endswith(".yaml"):
@@ -63,7 +78,7 @@ def load_config(config_path: str):
     return CN(config)
 
 
-def get_checkpoint_path(model_type: str, model_folder: str, use_aug: bool, paths_cfg: CN):
+def get_checkpoint_path(model_type: str, model_folder: str, use_aug: bool, paths_cfg: CN) -> str:
     """get path to model checkpoint
 
     :param model_type: one of the available model types
@@ -185,6 +200,7 @@ def parse_args(mode: str = "predict") -> argparse.Namespace:
     }
     parser = argparse.ArgumentParser(description=desc[mode], formatter_class=CustomHelpFormatter)
     parser.add_argument("-ll", "--log_level", default="info", help="Log level one of ['debug', 'info', 'warning', 'error']")
+    parser.add_argument("--device", default="cuda:0", help="Device used for model inference and training, either 'cpu' or 'cuda:<nr>'")
 
     if mode == "train":
         cfg_path = pkg_resources.resource_filename("spine_detection", "configs/model_config_paths.yaml")

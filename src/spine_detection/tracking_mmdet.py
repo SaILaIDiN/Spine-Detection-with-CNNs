@@ -109,7 +109,7 @@ def tracking_main(args):
 
     # get all boxes, scores and classes at the start if prediction is necessary:
     if args.csv is None:
-        model = load_model(args.model_type, args.use_aug, args.model_epoch, args.param_config)
+        model = load_model(args.model_type, args.use_aug, args.model_epoch, args.param_config, device=args.device)
         # We currently disable storing prediction images for tracking. Replace None by img_output_path to activate
         # Other way of disabling is complicated in here and coupled to args.save_images which is always False here?!
         all_boxes, all_scores, all_classes, all_num_detections = predict_images(
