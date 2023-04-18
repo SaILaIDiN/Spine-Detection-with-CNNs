@@ -17,6 +17,7 @@ from mmdet.apis import inference_detector, init_detector
 from tqdm import tqdm
 
 from spine_detection.utils.data_utils import calc_metric_xy
+from spine_detection.utils.logger_utils import setup_custom_logger
 from spine_detection.utils.model_utils import (
     get_checkpoint_path,
     get_config_path,
@@ -126,7 +127,7 @@ def write_to_df(df, img_path, w, h, csv_path, class_label, boxes, scores, thresh
     # be aware of windows adding \\ for folders in paths!
     csv_filepath = os.path.join(csv_path, Path(img_path).name[:-4] + ".csv")
     df.to_csv(csv_filepath, index=False)
-    logger.info("Detections saved in csv file " + csv_filepath + ".")
+    logger.debug("Detections saved in csv file " + csv_filepath + ".")
     return df
 
 
@@ -243,18 +244,13 @@ def predict_images(
                 data, img, orig_w, orig_h, output_csv_path, "spine", pred_boxes, pred_scores, disable_thresh=True
             )
 
-        logger.info("Finished detection of image " + img + ".")
+        logger.debug("Finished detection of image " + img + ".")
 
     if return_csv:
         return all_boxes, all_scores, all_classes, all_num_detections
 
-
-if __name__ == "__main__":
-
-    # logging.basicConfig(level=logging.INFO)
+def predict_main(args):
     start = time.time()
-    args = parse_args(mode="predict")
-
     # if it doesn't make sense, print warning
     if args.use_csv is not None and not args.save_images:
         logger.warning(
@@ -266,7 +262,7 @@ if __name__ == "__main__":
     # Decide whether to predict the bboxes or to load from csv
     if not args.use_csv:
         model, model_path = load_model(
-            args.model_type, args.use_aug, args.model_epoch, args.param_config, model=args.model, return_path=True
+            args.model_type, args.use_aug, args.model_epoch, args.param_config, model=args.model, device=args.device, return_path=True
         )
         if args.model is None:
             args.model = model_path.split("/")[-3]
@@ -295,9 +291,6 @@ if __name__ == "__main__":
     if args.save_images and not os.path.exists(output_path):
         os.makedirs(output_path)
 
-    print(output_path, model_name, csv_path)
-    # Path to the actual model that is used for the object detection.
-
     after_loading_model = time.time()
 
     # Make prediction
@@ -305,6 +298,7 @@ if __name__ == "__main__":
     logger.info("Starting predictions ...")
     if not args.use_csv:
         predict_images(model, args.input, output_path, csv_path, args.delta, args.theta)
+        logger.info(f"All detections are saved in {csv_path}.")
     else:
         changed_df = False
         for img in glob.glob(args.input):
@@ -331,4 +325,10 @@ if __name__ == "__main__":
 
     finished = time.time()
     logger.info(f"Model read in {after_loading_model - start}sec")
-    logger.info(f"Predicted {nr_imgs} images in {finished - after_loading_model}sec")
+    logger.info(f"Predicted {nr_imgs} images in {finished - after_loading_model}sec, avg. {nr_imgs/(finished - after_loading_model):.1f}fps")
+
+if __name__ == "__main__":
+    args = parse_args(mode="predict")
+    logger = setup_custom_logger(__name__, args.log_level)
+    logger.debug(f"Args: {args}")
+    predict_main(args)

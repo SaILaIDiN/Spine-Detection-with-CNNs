@@ -1,8 +1,10 @@
 yacs
 mmdet==2.25
-black
+black==22.1.0
 scipy
 pandas
 tqdm
+gdown
+zipfile36
 # opencv-python
 # conda install pytorch torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c nvidia

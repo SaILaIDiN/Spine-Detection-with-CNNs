@@ -12,7 +12,7 @@ def readme():
 if __name__ == "__main__":
     setup(
         name="spine-detection",
-        version="1.0.0",
+        version="1.0.2",
         description="Dendritic Spine Detection module",
         long_description=readme(),
         long_description_content_type="text/markdown",

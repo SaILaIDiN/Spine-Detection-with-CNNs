@@ -14,6 +14,7 @@ from tqdm import tqdm
 
 from spine_detection.predict_mmdet import predict_images
 from spine_detection.utils.data_utils import csv_to_boxes
+from spine_detection.utils.logger_utils import setup_custom_logger
 from spine_detection.utils.model_utils import load_model, parse_args
 from spine_detection.utils.opencv_utils import draw_boxes, image_load_encode
 from spine_detection.utils.tracker import CentroidTracker as CT
@@ -108,7 +109,7 @@ def tracking_main(args):
 
     # get all boxes, scores and classes at the start if prediction is necessary:
     if args.csv is None:
-        model = load_model(args.model_type, args.use_aug, args.model_epoch, args.param_config)
+        model = load_model(args.model_type, args.use_aug, args.model_epoch, args.param_config, device=args.device)
         # We currently disable storing prediction images for tracking. Replace None by img_output_path to activate
         # Other way of disabling is complicated in here and coupled to args.save_images which is always False here?!
         all_boxes, all_scores, all_classes, all_num_detections = predict_images(
@@ -292,4 +293,6 @@ def tracking_main(args):
 
 if __name__ == "__main__":
     args = parse_args(mode="tracking")
+    logger = setup_custom_logger(__name__, args.log_level)
+    logger.debug(f"Args: {args}")
     tracking_main(args)

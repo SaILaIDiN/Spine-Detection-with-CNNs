@@ -193,7 +193,7 @@ currentPath = os.path.dirname(os.path.abspath(__file__))
 
 def evaluate_tracking_main(args):
     if args.show_faults == "True":
-        model = load_model(args.model_type, args.use_aug, args.model_epoch, args.param_config)
+        model = load_model(args.model_type, args.use_aug, args.model_epoch, args.param_config, device=args.device)
 
     # Arguments validation
     errors = []

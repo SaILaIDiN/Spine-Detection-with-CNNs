@@ -1,7 +1,7 @@
 import glob
 import logging
 from pathlib import Path
-from typing import Any, Optional, Tuple
+from typing import Any, Optional, Tuple, Union
 
 import pkg_resources
 import yaml
@@ -23,11 +23,18 @@ def load_model(
     model: Optional[str] = None,
     device: str = "cuda:0",
     return_path: bool = False,
-) -> Tuple[Any, str]:
-    """Load frozen model
-    Args:
-        param_config (str): contains a pregenerated string of the tweaked hyperparameters used to navigate through
-                            model folders
+) -> Union[Tuple[Any, str], str]:
+    """Loads frozen detector
+
+    :param model_type: one of the available model types
+    :param use_aug: flag if augmentation was used during training
+    :param model_epoch: Name of model epoch that was frozen (e.g. epoch_10.pth)
+    :param param_config: Name of the param_config which should be the same as the folder the frozen model is in
+    :param model: Optional name of the model folder. If not provided it is automatically generated from the
+        previous arguments
+    :param device: Device where the model should be loaded
+    :param return_path: flag if the path to the checkpoint should be returned as well
+    :return: path to model checkpoint
     """
 
     model_folder = "tutorial_exps"
@@ -54,8 +61,12 @@ def load_model(
         return model
 
 
-def load_config(config_path: str):
+def load_config(config_path: str) -> CN:
+    """Load config from config path
 
+    :param config_path: path to config file
+    :return: config as a CfgNode Object
+    """
     config = None
     with open(config_path, "r") as f:
         if config_path.endswith(".yaml"):
@@ -63,7 +74,7 @@ def load_config(config_path: str):
     return CN(config)
 
 
-def get_checkpoint_path(model_type: str, model_folder: str, use_aug: bool, paths_cfg: CN):
+def get_checkpoint_path(model_type: str, model_folder: str, use_aug: bool, paths_cfg: CN) -> str:
     """get path to model checkpoint
 
     :param model_type: one of the available model types
@@ -184,6 +195,8 @@ def parse_args(mode: str = "predict") -> argparse.Namespace:
         "tracking": "Track spines in the whole stack",
     }
     parser = argparse.ArgumentParser(description=desc[mode], formatter_class=CustomHelpFormatter)
+    parser.add_argument("-ll", "--log_level", default="info", help="Log level one of ['debug', 'info', 'warning', 'error']")
+    parser.add_argument("--device", default="cuda:0", help="Device used for model inference and training, either 'cpu' or 'cuda:<gpu-id>'")
 
     if mode == "train":
         cfg_path = pkg_resources.resource_filename("spine_detection", "configs/model_config_paths.yaml")
@@ -326,5 +339,12 @@ def parse_args(mode: str = "predict") -> argparse.Namespace:
                 default="Test",
                 help="defines the proper way of loading either train, val or test data as input",
             )
+    args = parser.parse_args()
+    log_dict = {"debug": logging.DEBUG, "info": logging.INFO, "warning": logging.WARNING, "error": logging.ERROR}
+    if args.log_level in log_dict:
+        args.log_level = log_dict[args.log_level]
+    else:
+        args.log_level = logging.INFO
+        logger.warning(f"Log level {args.log_level} is not available, using INFO level by default.")
 
-    return parser.parse_args()
+    return args

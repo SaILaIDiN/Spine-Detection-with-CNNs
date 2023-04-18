@@ -12,6 +12,7 @@ from mmdet.datasets.builder import build_dataset
 from mmdet.models.builder import build_detector
 
 from spine_detection.utils.data_utils import DATASETS, SpineDataset
+from spine_detection.utils.logger_utils import setup_custom_logger
 from spine_detection.utils.model_utils import (
     get_checkpoint_path,
     get_config_path,
@@ -24,7 +25,6 @@ logger = logging.getLogger(__name__)
 
 
 def train_main(args):
-
     model_type = args.model_type
     model_suffix = args.model_suffix
     use_aug = args.use_aug
@@ -120,7 +120,7 @@ def train_main(args):
     # at the final config used for training
     logger.info(f"Config:\n{cfg.pretty_text}")
 
-    cfg.device = "cuda"
+    cfg.device = args.device.split(':')[0] # either 'cpu' or 'cuda', so 'cuda:<gpu-id>' needs to be reduced to 'cuda'
     # Build dataset
     datasets = [build_dataset(cfg.data.train)]
     if len(cfg.workflow) == 2:
@@ -142,4 +142,6 @@ def train_main(args):
 
 if __name__ == "__main__":
     args = parse_args(mode="train")
+    logger = setup_custom_logger(__name__, args.log_level)
+    logger.debug(f"Args: {args}")
     train_main(args)
