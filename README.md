@@ -14,7 +14,7 @@ Structure of this guide:
 
 ## Installation
 
-Using a CUDA enabled GPU is recommended to get fast prediction times and converge fast during training. However all the code works with only CPU as well you just need to choose the `cpu` versions for the installation and add `--device cpu` on all python commands described in the sections below.
+Python 3.8 is recommended. Using a CUDA enabled GPU is recommended to get fast prediction times and converge fast during training. However all the code works with only CPU as well you just need to choose the `cpu` versions for the installation and add `--device cpu` on all python commands described in the sections below.
 Some packages are listed in the `requirements.txt` file. To install all necessary packages correctly using pip, simply run
 
 ```bash
