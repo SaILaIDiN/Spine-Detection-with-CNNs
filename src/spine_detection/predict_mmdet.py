@@ -262,7 +262,7 @@ def predict_main(args):
     # Decide whether to predict the bboxes or to load from csv
     if not args.use_csv:
         model, model_path = load_model(
-            args.model_type, args.use_aug, args.model_epoch, args.param_config, model=args.model, return_path=True
+            args.model_type, args.use_aug, args.model_epoch, args.param_config, model=args.model, device=args.device, return_path=True
         )
         if args.model is None:
             args.model = model_path.split("/")[-3]
