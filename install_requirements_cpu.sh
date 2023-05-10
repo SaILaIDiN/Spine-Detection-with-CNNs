@@ -1,5 +1,5 @@
 pip install --no-cache-dir --upgrade pip wheel setuptools
-pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu117
+pip install torch torchvision torchaudio
 pip install -r requirements.txt
 pip install openmim
 
