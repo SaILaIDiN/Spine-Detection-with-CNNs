@@ -34,7 +34,7 @@ def tracking_main(args):
     NUM_CLASSES = 1
     MAX_VOL = 2000
 
-    if args.images is None:
+    if args.input is None:
         raise ValueError("You need to specify input images or input tif stack!")
 
     # save_folder: folder where tracking csv file will be saved
@@ -84,9 +84,9 @@ def tracking_main(args):
 
     # to get some annotations on the first images too, make the same backwards
     if args.input_mode == "Test":
-        all_imgs = sorted(glob.glob(args.images))
+        all_imgs = sorted(glob.glob(args.input))
     elif args.input_mode == "Train" or args.input_mode == "Val":
-        df = pd.read_csv(args.images)
+        df = pd.read_csv(args.input)
         all_imgs = df["filename"].tolist()
         all_imgs = list(dict.fromkeys(all_imgs))
     else:
@@ -114,7 +114,7 @@ def tracking_main(args):
         # Other way of disabling is complicated in here and coupled to args.save_images which is always False here?!
         all_boxes, all_scores, all_classes, all_num_detections = predict_images(
             model,
-            args.images,
+            args.input,
             None,
             csv_output_path,
             theta=IOM_THRESH,
@@ -183,7 +183,7 @@ def tracking_main(args):
                     continue
         else:
             # just load data from saved list
-            # this works as all_imgs from this file and sorted(glob.glob(args.images)) from predict sort all
+            # this works as all_imgs from this file and sorted(glob.glob(args.input)) from predict sort all
             # image paths so they are perfectly aligned
             # NOTE: the output values from the prediction are of type np.ndarray
             boxes, scores, classes, num_detections = all_boxes[i], all_scores[i], all_classes[i], all_num_detections[i]

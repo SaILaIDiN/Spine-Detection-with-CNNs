@@ -149,7 +149,8 @@ If you are not only interested in detecting spines on single 2D images but in a 
 ```bash
 python src/spine_detection/tracking_mmdet.py \
     --input "data/raw/person1/SR052N1D1day1*.png"\
-    --model Cascade_RCNN \
+    --model Cascade_RCNN_model \
+    --model_type Cascade-RCNN \
     --param_config lr_0.001_warmup_None_momentum_0.6_L2_3e-06_run_1 \
     --model_epoch latest \
     --save_images
@@ -165,7 +166,7 @@ After having tracked the dendritic spines over 3D stacks, you can evaluate the m
 
 ```bash
 python src/spine_detection/evaluate_tracking_mmdet.py \
-    --model Cascade_RCNN \
+    --model Cascade_RCNN_model \
     --param_config lr_0.001_warmup_None_momentum_0.6_L2_3e-06_run_1 \
     --tracking data_tracking_default_aug_False_epoch_1_theta_0.5_delta_0.5_Test.csv \
     --gt_file output/tracking/GT/data_tracking_max_wo_offset.csv
